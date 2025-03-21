@@ -1,0 +1,8 @@
+{
+    "recommendations": [
+        "njpwerner.autodocstring",
+        "charliermarsh.ruff",
+        "trond-snekvik.simple-rst",
+        "KiviCode.jira-commit-message"
+    ]
+}

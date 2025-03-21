@@ -1,0 +1,33 @@
+name: pre-commit
+
+on:
+  pull_request:
+    types: [ opened, synchronize, reopened ]
+  push:
+    branches:
+      - 'main'
+      - 'release/*'
+  workflow_dispatch:
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run pre-commit
+        uses: pre-commit/action@v3.0.1
+        continue-on-error: true
+
+      - name: Auto-commit changes
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "Apply pre-commit fixes"
+          commit_options: "--no-verify"
+          file_pattern: "*.py"
+          branch: ${{ github.head_ref }}
+          skip_dirty_check: false  # Skip the action if there are no changes
+          skip_fetch: false  # Fetch the latest changes before committing
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

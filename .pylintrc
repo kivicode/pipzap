@@ -1,0 +1,3 @@
+; PyLint is stupid, we use ruff + mypy instead
+[MESSAGES CONTROL]
+disable=all
