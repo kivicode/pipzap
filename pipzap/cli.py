@@ -37,54 +37,6 @@ class PipZapCLI:
         self._setup_prune_command()
         self._setup_merge_prune_command()
 
-    def _setup_prune_command(self) -> None:
-        prune_parser = self.subparsers.add_parser("prune", help="Prune redundant dependencies from a file")
-        prune_parser.add_argument("file", type=Path, help="Path to the dependency file")
-        prune_parser.add_argument(
-            "-p",
-            "--python-version",
-            type=str,
-            default=None,
-            help="Python version (required for requirements.txt)",
-        )
-        prune_parser.add_argument(
-            "-o",
-            "--output",
-            type=Path,
-            default=None,
-            help="Output file (defaults to stdout)",
-        )
-        prune_parser.add_argument(
-            "-f",
-            "--format",
-            type=str,
-            choices=list(KNOWN_FORMATTERS),
-            default="requirements",
-            help="Output format for dependency list.",
-        )
-
-    def _setup_merge_prune_command(self) -> None:
-        merge_parser = self.subparsers.add_parser(
-            "merge-prune", help="Merge and prune multiple dependency files"
-        )
-        merge_parser.add_argument("files", nargs="+", type=Path, help="Paths to dependency files")
-        merge_parser.add_argument(
-            "--python-version",
-            type=str,
-            default=None,
-            help="Python version (required if any file is requirements.txt)",
-        )
-        merge_parser.add_argument(
-            "--output", type=Path, default=None, help="Output file (defaults to stdout)"
-        )
-        merge_parser.add_argument(
-            "--format",
-            type=str,
-            choices=["requirements", "poetry", "uv"],
-            default="requirements",
-            help="Output format for dependency list (requirements, poetry, uv)",
-        )
-
     def run(self) -> None:
         args = self.parser.parse_args()
         if not args.command:
@@ -114,6 +66,42 @@ class PipZapCLI:
                 logger.exception(err)
             else:
                 logger.error(err)
+
+    def _setup_prune_command(self) -> None:
+        prune_parser = self.subparsers.add_parser("prune", help="Prune redundant dependencies from a file")
+        prune_parser.add_argument("file", type=Path, help="Path to the dependency file")
+        self._add_common_args(prune_parser)
+
+    def _setup_merge_prune_command(self) -> None:
+        merge_parser = self.subparsers.add_parser(
+            "merge-prune", help="Merge and prune multiple dependency files"
+        )
+        merge_parser.add_argument("files", nargs="+", type=Path, help="Paths to dependency files")
+        self._add_common_args(merge_parser)
+
+    def _add_common_args(self, parser: argparse.ArgumentParser):
+        parser.add_argument(
+            "-p",
+            "--python-version",
+            type=str,
+            default=None,
+            help="Python version (required for requirements.txt)",
+        )
+        parser.add_argument(
+            "-o",
+            "--output",
+            type=Path,
+            default=None,
+            help="Output file (defaults to stdout)",
+        )
+        parser.add_argument(
+            "-f",
+            "--format",
+            type=str,
+            choices=list(KNOWN_FORMATTERS),
+            default="requirements",
+            help="Output format for dependency list.",
+        )
 
     def _detect_format(self, file_path: Path) -> str:
         if file_path.name == "requirements.txt":
