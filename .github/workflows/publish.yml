@@ -6,7 +6,7 @@ on:
       - 'v*'
 
 jobs:
-  test:
+  publish:
     runs-on: ubuntu-latest
 
     strategy:
