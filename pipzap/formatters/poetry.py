@@ -20,7 +20,7 @@ class PoetryFormatter(DependencyFormatter):
             elif dep.source_type == "git":
                 entry = {"git": dep.source_url}
                 if dep.constraint:
-                    entry["rev"] = dep.constraint
+                    entry["rev"] = dep.constraint.split("#egg", 1)[0]
                 version = entry
 
             elif dep.source_type == "url":

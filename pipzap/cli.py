@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 from typing import List, Optional
 
-import toml
+import tomlkit
 from loguru import logger
 
 from pipzap.core.dependencies import Dependency
@@ -111,7 +111,7 @@ class PipZapCLI:
             raise DependencyError(f"Cannot determine format of {file_path}")
 
         with file_path.open("r") as f:
-            data = toml.load(f)
+            data = tomlkit.load(f)
 
         if "project" in data:
             return "uv-toml"

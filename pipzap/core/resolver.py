@@ -3,7 +3,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict, List
 
-import toml
+import tomlkit
 from loguru import logger
 
 from pipzap.core.dependencies import Dependency, ProjectDependencies
@@ -27,9 +27,7 @@ class DependenciesResolver:
             ResolutionError: An error indicating that uv.lock was not generated.
         """
         with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path("./temp")
-            temp_path.mkdir(exist_ok=True)
-            # temp_path = Path(temp_dir)
+            temp_path = Path(temp_dir)
 
             self._write_pyproject_toml(project_deps.direct, temp_path, python_version)
             self._execute_uv_lock(temp_path)
@@ -52,8 +50,6 @@ class DependenciesResolver:
             python_version: The python version constraint for the project.
         """
         dependencies = [dep.to_uv_format() for dep in direct_deps]
-        custom_indices = {dep.custom_index for dep in direct_deps if dep.custom_index}
-        sources = [{"url": index, "type": "index"} for index in custom_indices] if custom_indices else []
 
         pyproject: Dict[str, Dict[str, Any]] = {
             "project": {
@@ -65,11 +61,19 @@ class DependenciesResolver:
             }
         }
 
-        if sources:
-            pyproject["tool"] = {"uv": {"sources": sources}}
+        tool_section = {"sources": {}, "index": []}
+
+        for dep in direct_deps:
+            if not dep.custom_index:
+                continue
+
+            tool_section["sources"][dep.name] = {"index": dep.name}
+            tool_section["index"].append({"name": dep.name, "url": dep.custom_index})
+
+        pyproject["tool"] = {"uv": tool_section}
 
         with (output_dir / "pyproject.toml").open("w") as f:
-            toml.dump(pyproject, f)
+            tomlkit.dump(pyproject, f)
 
     def _execute_uv_lock(self, directory: Path) -> None:
         """Executes the uv lock command in the specified directory.
@@ -80,14 +84,15 @@ class DependenciesResolver:
         Raises:
             ResolutionError: An error indicating failure during the uv lock execution.
         """
-        cmd = ["uv", "lock", "--directory", str(directory)]
+        cmd = ["uv", "lock", "--prerelease=allow", "--directory", str(directory)]
 
         try:
+            logger.debug(f"Running: {' '.join(cmd)}")
             result = subprocess.run(cmd, check=True, capture_output=True, text=True)
             if result.stderr:
                 logger.debug(f"uv lock log:\n{result.stderr}")
         except subprocess.CalledProcessError as e:
-            raise ResolutionError(f"Failed to execute uv lock:\n{e.stderr}")
+            raise ResolutionError(f"Failed to execute uv lock:\n{e.stderr}") from e
 
     @staticmethod
     def _parse_lock_file(lock_file: Path) -> Dict[str, List[str]]:
@@ -103,7 +108,8 @@ class DependenciesResolver:
             ResolutionError: An error indicating that the uv.lock file is invalid.
         """
         try:
-            lock_data = toml.load(lock_file)
+            with lock_file.open("r") as f:
+                lock_data = tomlkit.load(f)
             graph: Dict[str, List[str]] = {}
 
             for package in lock_data.get("package", []):
@@ -114,4 +120,4 @@ class DependenciesResolver:
             return graph
 
         except Exception as e:
-            raise ResolutionError(f"Invalid uv.lock file: {e}")
+            raise ResolutionError(f"Invalid uv.lock file: {e}") from e

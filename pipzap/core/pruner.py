@@ -92,7 +92,7 @@ class DependencyPruner:
         try:
             return parser.parse(file_path)
         except Exception as e:
-            raise DependencyError(f"Failed to parse {file_path}: {e}")
+            raise DependencyError(f"Failed to parse {file_path}: {e}") from e
 
     def _resolve_dependencies(self, project_deps: ProjectDependencies) -> ProjectDependencies:
         """Resolves dependencies for the project.
@@ -110,7 +110,7 @@ class DependencyPruner:
         try:
             return resolver.resolve(project_deps, self.python_version)
         except Exception as e:
-            raise DependencyError(f"Failed to resolve dependencies: {e}")
+            raise DependencyError(f"Failed to resolve dependencies: {e}") from e
 
     def _find_redundant_deps(self, direct: List[Dependency], graph: Dict[str, List[str]]) -> Set[str]:
         """Finds redundant dependencies that appear both as direct and transitive dependencies.

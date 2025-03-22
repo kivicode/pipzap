@@ -28,9 +28,10 @@ class UVTomlParser(DependencyParser):
             raise ParseError(f"File not found: {file_path}")
 
         try:
-            pyproject_data = tomlkit.load(file_path)
+            with file_path.open("r") as f:
+                pyproject_data = tomlkit.load(f)
         except Exception as e:
-            raise ParseError(f"Invalid TOML in {file_path}: {e}")
+            raise ParseError(f"Invalid TOML in {file_path}: {e}") from e
 
         deps_data = pyproject_data.get("project", {}).get("dependencies", [])
         python_version = pyproject_data.get("project", {}).get("requires-python", None)

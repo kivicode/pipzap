@@ -20,7 +20,7 @@ class UVFormatter(DependencyFormatter):
             elif dep.source_type == "git":
                 entry = {"git": dep.source_url}
                 if dep.constraint:
-                    entry["rev"] = dep.constraint
+                    entry["rev"] = dep.constraint.split("#egg", 1)[0]
 
             elif dep.source_type == "url":
                 entry = {"url": dep.source_url}

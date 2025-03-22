@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-import toml
+import tomlkit
 from loguru import logger
 
 from pipzap.core.dependencies import Dependency, ProjectDependencies
@@ -34,9 +34,10 @@ class PoetryTomlParser(DependencyParser):
             raise ParseError(f"File not found: {file_path}")
 
         try:
-            pyproject_data = toml.load(file_path)
+            with file_path.open("r") as f:
+                pyproject_data = tomlkit.load(f)
         except Exception as e:
-            raise ParseError(f"Invalid TOML in {file_path}: {e}")
+            raise ParseError(f"Invalid TOML in {file_path}: {e}") from e
 
         deps_data = pyproject_data.get("project", {}).get("dependencies", None)
         python_version = pyproject_data.get("project", {}).get("requires-python", None)

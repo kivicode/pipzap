@@ -5,6 +5,8 @@ from pipzap.core.dependencies import Dependency, ProjectDependencies
 from pipzap.exceptions import ParseError
 from pipzap.parsers.base import DependencyParser
 
+# FIXME: Handle inline and cumulative --index-url
+
 
 class RequirementsTxtParser(DependencyParser):
     """Parses requirements.txt files."""
@@ -33,7 +35,12 @@ class RequirementsTxtParser(DependencyParser):
 
         for line in lines:
             line = line.strip()
-            if not line or line.startswith("#"):
+
+            comment_index = line.find("#")
+            if comment_index != -1:
+                line = line[:comment_index]
+
+            if not line:
                 continue
 
             if line.startswith("--extra-index-url"):
