@@ -1,7 +1,7 @@
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import toml
 from loguru import logger
@@ -55,7 +55,7 @@ class DependenciesResolver:
         custom_indices = {dep.custom_index for dep in direct_deps if dep.custom_index}
         sources = [{"url": index, "type": "index"} for index in custom_indices] if custom_indices else []
 
-        pyproject = {
+        pyproject: Dict[str, Dict[str, Any]] = {
             "project": {
                 "name": "dummy-project",
                 "version": "0.1.0",

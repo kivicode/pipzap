@@ -23,6 +23,29 @@ class Dependency:
     source_url: Optional[str] = None
     custom_index: Optional[str] = None
 
+    def to_uv_format(self) -> Union[str, Dict[str, Optional[str]]]:
+        """Serializes the dependency for UV's pyproject.toml.
+
+        Returns:
+            The serialized dependency in a string or dictionary format.
+        """
+        if self.source_type == "pypi":
+            return f"{self.name}{self.constraint}" if self.constraint else self.name
+
+        if self.source_type == "git":
+            base = {"git": self.source_url}
+            if self.constraint:
+                base["rev"] = self.constraint
+            return base
+
+        if self.source_type == "url":
+            return {"url": self.source_url}
+
+        if self.source_type == "file":
+            return {"path": self.source_url}
+
+        raise ValueError(f"Unsupported source_type: {self.source_type}")
+
     @classmethod
     def from_string(cls, dep_str: str, custom_index: Optional[str] = None) -> Optional[Self]:
         """Returns a Dependency instance constructed from a string.
@@ -93,8 +116,8 @@ class Dependency:
             )
         return cls(name=name, constraint=constraint, source_type="pypi", custom_index=custom_index)
 
-    @staticmethod
-    def _from_git(dep_str: str, custom_index: Optional[str]) -> Self:
+    @classmethod
+    def _from_git(cls, dep_str: str, custom_index: Optional[str]) -> Self:
         """Parses a git-based dependency.
 
         Args:
@@ -109,12 +132,10 @@ class Dependency:
         url = url.split("@")[0] if "@" in url else url
         egg_index = dep_str.find("#egg=")
         name = dep_str[egg_index + 5 :].strip() if egg_index != -1 else "unknown"
-        return Dependency(
-            name=name, constraint=rev, source_type="git", source_url=url, custom_index=custom_index
-        )
+        return cls(name, rev, source_type="git", source_url=url, custom_index=custom_index)
 
-    @staticmethod
-    def _from_url(dep_str: str, custom_index: Optional[str]) -> Self:
+    @classmethod
+    def _from_url(cls, dep_str: str, custom_index: Optional[str]) -> Self:
         """Parses a URL-based dependency.
 
         Args:
@@ -124,12 +145,10 @@ class Dependency:
         Returns:
             A Dependency instance.
         """
-        return Dependency(
-            name="unknown", constraint="", source_type="url", source_url=dep_str, custom_index=custom_index
-        )
+        return cls("unknown", "", source_type="url", source_url=dep_str, custom_index=custom_index)
 
-    @staticmethod
-    def _from_file(dep_str: str, custom_index: Optional[str]) -> Self:
+    @classmethod
+    def _from_file(cls, dep_str: str, custom_index: Optional[str]) -> Self:
         """Parses a file-based dependency.
 
         Args:
@@ -139,12 +158,10 @@ class Dependency:
         Returns:
             A Dependency instance.
         """
-        return Dependency(
-            name="unknown", constraint="", source_type="file", source_url=dep_str, custom_index=custom_index
-        )
+        return cls("unknown", "", source_type="file", source_url=dep_str, custom_index=custom_index)
 
-    @staticmethod
-    def _from_pypi(dep_str: str, custom_index: Optional[str]) -> Self:
+    @classmethod
+    def _from_pypi(cls, dep_str: str, custom_index: Optional[str]) -> Self:
         """Parses a PyPI dependency.
 
         Args:
@@ -159,14 +176,14 @@ class Dependency:
                 continue
 
             name, constraint = dep_str.split(op, 1)
-            return Dependency(
-                name=name.strip(),
-                constraint=f"{op}{constraint.strip()}",
+            return cls(
+                name.strip(),
+                f"{op}{constraint.strip()}",
                 source_type="pypi",
                 custom_index=custom_index,
             )
 
-        return Dependency(name=dep_str.strip(), constraint="", source_type="pypi", custom_index=custom_index)
+        return cls(dep_str.strip(), "", source_type="pypi", custom_index=custom_index)
 
     @staticmethod
     def _is_file_path(dep_str: str) -> bool:
@@ -179,29 +196,6 @@ class Dependency:
             True if the string represents a file path, otherwise False.
         """
         return dep_str.startswith(("./", "../", "/", "~")) or dep_str.endswith((".tar.gz", ".whl"))
-
-    def to_uv_format(self) -> Union[str, Dict[str, str]]:
-        """Serializes the dependency for UV's pyproject.toml.
-
-        Returns:
-            The serialized dependency in a string or dictionary format.
-        """
-        if self.source_type == "pypi":
-            return f"{self.name}{self.constraint}" if self.constraint else self.name
-
-        if self.source_type == "git":
-            base = {"git": self.source_url}
-            if self.constraint:
-                base["rev"] = self.constraint
-            return base
-
-        if self.source_type == "url":
-            return {"url": self.source_url}
-
-        if self.source_type == "file":
-            return {"path": self.source_url}
-
-        raise ValueError(f"Unsupported source_type: {self.source_type}")
 
     def __str__(self) -> str:
         if self.source_type == "pypi":

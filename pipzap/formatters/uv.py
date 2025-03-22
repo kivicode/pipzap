@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List, Optional, Union
 
 import tomlkit
 
@@ -12,6 +12,8 @@ class UVFormatter(DependencyFormatter):
     def format(self, deps: List[Dependency]) -> str:
         uv_deps = []
         for dep in deps:
+            entry: Union[str, Dict[str, Optional[str]]]
+
             if dep.source_type == "pypi":
                 entry = f"{dep.name}{dep.constraint}" if dep.constraint else dep.name
 

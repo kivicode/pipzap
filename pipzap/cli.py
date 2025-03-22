@@ -8,7 +8,7 @@ import toml
 from loguru import logger
 
 from pipzap.core.dependencies import Dependency
-from pipzap.core.pruner import DependencyPruner
+from pipzap.core.pruner import DependencyPruner, KnownParsersT
 from pipzap.exceptions import DependencyError
 from pipzap.formatters import PoetryFormatter, RequirementsFormatter, UVFormatter
 from pipzap.formatters.base import DependencyFormatter
@@ -103,7 +103,7 @@ class PipZapCLI:
             help="Output format for dependency list.",
         )
 
-    def _detect_format(self, file_path: Path) -> str:
+    def _detect_format(self, file_path: Path) -> KnownParsersT:
         if file_path.name == "requirements.txt":
             return "requirements-txt"
 

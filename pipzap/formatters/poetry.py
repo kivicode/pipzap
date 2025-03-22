@@ -12,6 +12,8 @@ class PoetryFormatter(DependencyFormatter):
     def format(self, deps: List[Dependency]) -> str:
         poetry_deps: Dict[str, Union[str, Dict]] = {}
         for dep in deps:
+            version: Union[str, Dict]
+
             if dep.source_type == "pypi":
                 version = dep.constraint if dep.constraint else "*"
 
