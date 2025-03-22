@@ -1,20 +1,24 @@
 [tool.poetry]
-name = "package-name"
+name = "pipzap"
 version = "0.1.0"
-description = "A template for a nice package"
+description = "Dependency optimization and pruning made simple"
 authors = ["KiviCode <kivicode.dev@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "~3.11"
-
+python = ">=3.7,<4.0"
+loguru = "^0.7.3"
+tomlkit = ">=0.12.0"
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.9.6"
-mypy = "^1.15.0"
-pre-commit = "^4.1.0"
-ipykernel = "^6.29.5"
+mypy = "~1.4"
+pre-commit = "~2.21.0"
+ruff = "^0.11.2"
+
+
+[tool.poetry.group.test.dependencies]
+pytest = ">=7.4.4"
 
 [tool.mypy]
 ignore_missing_imports = false
@@ -23,7 +27,7 @@ check_untyped_defs = true
 [tool.ruff]
 line-length = 110
 indent-width = 4
-target-version = "py311"
+target-version = "py38"
 
 [tool.ruff.format]
 indent-style = "space"
