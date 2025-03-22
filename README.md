@@ -89,7 +89,7 @@ pipzap merge-prune requirements.txt pyproject.toml -o merged.txt -p 3.11 -f poet
 
 Input (`requirements.txt` from [easy_ViTPose](https://github.com/JunkyByte/easy_ViTPose/blob/main/requirements.txt)):
 
-```toml
+```
 certifi==2023.7.22
 charset-normalizer==3.2.0
 coloredlogs==15.0.1
