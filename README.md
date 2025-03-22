@@ -168,7 +168,10 @@ zipp = "3.17.0"
 ### Merging and Pruning with Poetry Output
 
 Input (`reqs.txt`):
-&&&requests==2.28.1&&&
+
+```
+requests==2.28.1
+```
 
 Input (`pyproject.toml`):
 
