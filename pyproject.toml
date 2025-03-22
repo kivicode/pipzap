@@ -6,6 +6,9 @@ authors = ["KiviCode <kivicode.dev@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 
+[tool.poetry.scripts]
+pipzap = 'pipzap.__main__:main'
+
 [tool.poetry.dependencies]
 python = ">=3.7,<4.0"
 loguru = "^0.7.3"
