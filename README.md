@@ -28,7 +28,6 @@ Moreover, even in well-maintained codebases, accidental over-specification creep
 ## Features
 
 - **Dependency Pruning**: Removes redundant dependencies satisfied by transitive dependencies.
-- **Multi-File Merging**: Combines and prunes dependencies from multiple sources.
 - **Format Auto-Detection**: Automatically identifies `requirements.txt`, uv, and Poetry files.
 - **Flexible Output**: Supports outputting in `requirements`, `poetry`, or `uv` formats.
 - **Python Version Handling**: Extracts from `pyproject.toml` or accepts via CLI for `requirements.txt`.
@@ -44,11 +43,7 @@ pip install pipzap
 
 ## Usage
 
-PipZap offers two main commands: `prune` and `merge-prune`, with options for verbosity, Python version, output file, and format.
-
-### Prune a Single File
-
-Eliminate redundant dependencies from a single file:
+Eliminate redundant dependencies from a file:
 
 ```bash
 pipzap requirements.txt -p 3.11
@@ -58,16 +53,7 @@ pipzap pyproject.toml -o pruned.txt -v
 
 - Use `-p/--python-version` for `requirements.txt` (required).
 - Python version is auto-detected from `pyproject.toml` if present.
-
-### Merge and Prune Multiple Files
-
-Merge and prune dependencies from multiple files:
-
-```bash
-pipzap merge-prune requirements.txt pyproject.toml -o merged.txt -p 3.11 -f poetry
-```
-
-- `-p/--python-version` is required if any file is `requirements.txt`.
+- `-p/--python-version` is required if a source file is `requirements.txt`.
 
 ## Supported Formats
 
@@ -80,8 +66,7 @@ pipzap merge-prune requirements.txt pyproject.toml -o merged.txt -p 3.11 -f poet
 1. **Parsing**: Detects file format and extracts direct dependencies.
 2. **Resolution**: Uses `uv` to resolve the full dependency graph via a temporary `pyproject.toml`.
 3. **Pruning**: Identifies and removes transitive redundancies.
-4. **Merging**: Combines multiple files into a single pruned list.
-5. **Formatting**: Outputs in the specified format (`requirements`, `poetry`, or `uv`).
+4. **Formatting**: Outputs in the specified format (`requirements`, `poetry`, or `uv`).
 
 ## Examples
 
@@ -182,20 +167,6 @@ dependencies = [
  "flask==2.0.1",
 ]
 requires-python = ">=3.9"
-```
-
-Command:
-
-```bash
-pipzap merge-prune reqs.txt pyproject.toml -p 3.11 -f poetry
-```
-
-Output (assuming `urllib3` is transitive):
-
-```toml
-[tool.poetry.dependencies]
-requests = "2.28.1"
-flask = "2.0.1"
 ```
 
 ## Contributing
