@@ -72,6 +72,12 @@ class PoetryFormatter(DependenciesFormatter):
 
         groups: Dict[str, Any] = {}
         for dep in group_deps:
+            if dep.group is None:
+                raise RuntimeError(
+                    f"Internal error: dependency {dep.name} doesn't specify a group. "
+                    "This is likely a bug, please report it."
+                )
+
             group = groups.setdefault(dep.group, {"dependencies": {}})
             group["dependencies"][dep.name] = self._format_dependency_spec(dep)
 
@@ -90,6 +96,12 @@ class PoetryFormatter(DependenciesFormatter):
 
         extras: Dict[str, List[str]] = {}
         for dep in extra_deps:
+            if dep.extra is None:
+                raise RuntimeError(
+                    f"Internal error: dependency {dep.name} doesn't belong to any extra. "
+                    "This is likely a bug, please report it."
+                )
+
             extras.setdefault(dep.extra, []).append(dep.name)
 
         self.pyproject["tool"]["poetry"]["extras"] = extras
