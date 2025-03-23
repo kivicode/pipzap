@@ -51,9 +51,9 @@ PipZap offers two main commands: `prune` and `merge-prune`, with options for ver
 Eliminate redundant dependencies from a single file:
 
 ```bash
-pipzap prune requirements.txt -p 3.11
-pipzap prune pyproject.toml
-pipzap prune pyproject.toml -o pruned.txt -v
+pipzap requirements.txt -p 3.11
+pipzap pyproject.toml
+pipzap pyproject.toml -o pruned.txt -v
 ```
 
 - Use `-p/--python-version` for `requirements.txt` (required).
