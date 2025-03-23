@@ -71,7 +71,11 @@ class ProjectConverter:
                 f"Defaulting to the current environment: {self.py_version}"
             )
 
-        workspace.run(["uvx", "migrate-to-uv"], "conversion")
+        workspace.run(
+            ["uvx", "migrate-to-uv"],
+            "conversion",
+            log_filter=lambda line: "No `requires-python` value found in the workspace." not in line,
+        )
 
         path = workspace.base / "pyproject.toml"
         pyproject = read_toml(path)

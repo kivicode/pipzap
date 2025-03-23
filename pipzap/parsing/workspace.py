@@ -1,8 +1,9 @@
+import re
 import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Callable, List, Optional, Union
 
 from loguru import logger
 from typing_extensions import Self
@@ -62,7 +63,7 @@ class Workspace:
                 shutil.rmtree(self._base)
             self._base.mkdir(parents=True)
 
-        logger.debug(f"Entered workspace: {self._base}")
+        logger.debug(f"Entered workspace: {self._base} from ({self.source_path})")
         self._path = self._base
 
         if self.source_path:
@@ -80,12 +81,13 @@ class Workspace:
                 shutil.rmtree(self.base)
         logger.debug(f"Exited workspace: {self.base}")
 
-    def run(self, cmd: List[str], marker: str):
+    def run(self, cmd: List[str], marker: str, log_filter: Callable[[str], bool] = lambda l: True):
         """Executes the specified (shell) command in the workspace directory and captures its output.
 
         Args:
             cmd: List of command arguments to execute
             marker: A string identifier for the command (used in error messages).
+            log_filter: A callable determining whether the log level inference should happen for a given line.
 
         Raises:
             ResolutionError: If the command fails to execute successfully
@@ -95,12 +97,27 @@ class Workspace:
             - stderr is captured and included in any error messages
         """
         try:
+            inner_logger = logger.opt(depth=1)
+
             logger.debug(f"Running: {' '.join(cmd)}")
             result = subprocess.run(cmd, check=True, capture_output=True, text=True, cwd=(self.base))
             for line in str(result.stderr).splitlines():
                 line = line.strip()
-                if line:
-                    logger.debug(f"       >>> {line.strip()}")
+
+                if not line:
+                    continue
+
+                log_level = inner_logger.debug
+                tokens = set(re.split("\W+", line.lower()))
+
+                if log_filter(line):
+                    if tokens & {"warning", "warn"}:
+                        log_level = inner_logger.warning
+
+                    if tokens & {"error"}:
+                        log_level = inner_logger.error
+
+                log_level(f"       >>> {line}", depth=1)
 
         except subprocess.CalledProcessError as e:
             raise ResolutionError(f"Failed to execute {marker}:\n{e.stderr}") from e
