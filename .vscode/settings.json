@@ -21,4 +21,9 @@
         "editor.defaultFormatter": "charliermarsh.ruff"
     },
     "autoDocstring.customTemplatePath": ".vscode/google_typeless.mustache",
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
 }
