@@ -161,3 +161,4 @@ cython_debug/
 
 # MacOS system files
 .DS_Store
+.history
