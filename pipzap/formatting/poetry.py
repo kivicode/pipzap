@@ -12,7 +12,7 @@ from pipzap.utils.pretty_string import remove_prefix
 class PoetryFormatter(DependenciesFormatter):
     """Builds a Poetry pyproject.toml structure from parsed dependencies."""
 
-    TEMPLATE = {
+    TEMPLATE: Dict[str, Any] = {
         "tool": {
             "poetry": {
                 "name": ProjectConverter.DUMMY_PROJECT_NAME,
@@ -70,7 +70,7 @@ class PoetryFormatter(DependenciesFormatter):
         if not group_deps:
             return
 
-        groups = {}
+        groups: Dict[str, Any] = {}
         for dep in group_deps:
             group = groups.setdefault(dep.group, {"dependencies": {}})
             group["dependencies"][dep.name] = self._format_dependency_spec(dep)
@@ -88,7 +88,7 @@ class PoetryFormatter(DependenciesFormatter):
         if not extra_deps:
             return
 
-        extras = {}
+        extras: Dict[str, List[str]] = {}
         for dep in extra_deps:
             extras.setdefault(dep.extra, []).append(dep.name)
 

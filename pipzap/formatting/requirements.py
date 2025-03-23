@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional, cast
 
 from pipzap.core.dependencies import Dependency, ProjectDependencies
 from pipzap.formatting.base import DependenciesFormatter
@@ -9,7 +9,7 @@ class RequirementsTXTFormatter(DependenciesFormatter):
 
     def __init__(self, dependencies: ProjectDependencies):
         super().__init__(dependencies)
-        self._lines = []
+        self._lines: List[str] = []
 
     def format(self) -> str:
         """Build a requirements.txt string from the dependencies.
@@ -26,7 +26,7 @@ class RequirementsTXTFormatter(DependenciesFormatter):
         """Adds custom index URLs as `--index-url` or `--extra-index-url` lines."""
         seen_indexes = set()
         primary_index = None
-        extra_indexes = []
+        extra_indexes: List[str] = []
 
         for dep in self.deps:
             if not dep.index or dep.index in seen_indexes:
@@ -96,6 +96,6 @@ class RequirementsTXTFormatter(DependenciesFormatter):
             return dep.pinned_version
 
         if (dep.version_constraint or "").startswith("=="):
-            return dep.version_constraint[2:].strip()
+            return cast(str, dep.version_constraint)[2:].strip()
 
         return None
