@@ -2,13 +2,13 @@ import argparse
 import sys
 from importlib.metadata import version
 from pathlib import Path
-from typing import Dict, List, Optional, Type
+from typing import Dict, Optional, Type
 
 from loguru import logger
 
 from pipzap import __version__ as zap_version
-from pipzap.core import Dependency, DependencyPruner, SourceType
-from pipzap.exceptions import DependencyError
+from pipzap.core import DependencyPruner, SourceType
+from pipzap.core.dependencies import ProjectDependencies
 from pipzap.formatting import PoetryFormatter, RequirementsTXTFormatter, UVFormatter
 from pipzap.formatting.base import DependenciesFormatter
 from pipzap.parsing import DependenciesParser, ProjectConverter, Workspace
@@ -49,7 +49,8 @@ class PipZapCLI:
                 source_format = ProjectConverter(args.python_version).convert_to_uv(workspace)
                 parsed = DependenciesParser().parse(workspace)
                 pruned = DependencyPruner().prune(parsed)
-                return self._output_results(pruned, args.output, args.format or source_format, args.force)
+
+            return self._output_results(pruned, args.output, args.format or source_format, args.force)
 
         except Exception as err:
             if args.verbose:
@@ -107,11 +108,3 @@ class PipZapCLI:
             default=None,
             help="Python version (required for requirements.txt)",
         )
-
-    @staticmethod
-    def _get_formatter(format_name: str) -> DependenciesFormatter:
-        formatter = KNOWN_FORMATTERS.get(format_name)
-        if formatter is None:
-            raise DependencyError(f"Unsupported output format: {format_name}")
-
-        return formatter

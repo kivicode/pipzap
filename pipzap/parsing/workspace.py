@@ -2,7 +2,7 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import List, Union
+from typing import List, Optional, Union
 
 from loguru import logger
 from typing_extensions import Self
@@ -25,8 +25,20 @@ class Workspace:
                          or None if no source file is needed.
         """
         self.source_path = Path(source_path) if source_path else None
-        self.base = None
-        self.path = None
+        self._base: Optional[Path] = None
+        self._path: Optional[Path] = None
+
+    @property
+    def base(self) -> Path:
+        if not self._base:
+            raise RuntimeError("Unable to get Workspace.base: context not entered.")
+        return self._base
+
+    @property
+    def path(self) -> Path:
+        if not self._path:
+            raise RuntimeError("Unable to get Workspace.path: context not entered.")
+        return self._path
 
     def __enter__(self) -> Self:
         """Enters the context, setting up the temporary workspace.
@@ -42,17 +54,20 @@ class Workspace:
             - In debug mode, uses `./pipzap-temp` and ensures it's clean
         """
         if not is_debug():
-            self.base = Path(tempfile.mkdtemp())
+            self._base = Path(tempfile.mkdtemp())
         else:
-            self.base = Path("./pipzap-temp")
-            if self.base.exists():
-                shutil.rmtree(self.base)
-            self.base.mkdir(parents=True)
-        logger.debug(f"Entered workspace: {self.base}")
-        self.path = self.base
+            self._base = Path("./pipzap-temp")
+
+            if self._base.exists():
+                shutil.rmtree(self._base)
+            self._base.mkdir(parents=True)
+
+        logger.debug(f"Entered workspace: {self._base}")
+        self._path = self._base
+
         if self.source_path:
-            self.path /= self.source_path.name
-            shutil.copyfile(self.source_path, self.path)
+            self._path /= self.source_path.name
+            shutil.copyfile(self.source_path, self._path)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
