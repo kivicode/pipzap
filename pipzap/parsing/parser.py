@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Optional, Set
 
 from loguru import logger
-from pkg_resources import Requirement
+from packaging.requirements import Requirement
 
 from pipzap.core.dependencies import Dependency, ProjectDependencies
 from pipzap.parsing.workspace import Workspace
