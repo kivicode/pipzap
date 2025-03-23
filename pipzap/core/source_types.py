@@ -1,9 +1,8 @@
 from enum import Enum
 from pathlib import Path
 
-import tomli
-
 from pipzap.exceptions import ParseError
+from pipzap.utils.io import read_toml
 
 
 class SourceType(Enum):
@@ -23,8 +22,7 @@ class SourceType(Enum):
         if file_path.name != "pyproject.toml":
             raise ParseError(f"Cannot determine format of {file_path}")
 
-        with file_path.open("rb") as f:
-            data = tomli.load(f)
+        data = read_toml(file_path)
 
         if "tool" in data and "poetry" in data["tool"]:
             return cls.POETRY
