@@ -2,7 +2,6 @@ from enum import Enum
 from pathlib import Path
 
 import tomli
-from typing_extensions import Self
 
 from pipzap.exceptions import ParseError
 
@@ -15,7 +14,7 @@ class SourceType(Enum):
     UV = "uv"
 
     @classmethod
-    def detect_format(cls, file_path: Path) -> Self:
+    def detect_format(cls, file_path: Path) -> "SourceType":
         """Attempts to guess the build system given a source file path."""
 
         if file_path.name.endswith("requirements.txt"):
