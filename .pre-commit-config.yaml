@@ -5,12 +5,9 @@ repos:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
       - id: ruff-format
+
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.4.0
+    rev: v1.14.0
     hooks:
       - id: mypy
-        additional_dependencies: [types-PyYAML, types-requests, types-toml]
-  - repo: https://github.com/kynan/nbstripout
-    rev: 0.8.1
-    hooks:
-      - id: nbstripout
+        additional_dependencies: [types-PyYAML, types-requests]
