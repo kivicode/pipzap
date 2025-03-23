@@ -3,6 +3,7 @@
 [![image](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 ![Python Versions](https://img.shields.io/badge/python-3.8%20|%203.9%20|%203.10%20|%203.11%20|%203.12%20|%203.13-blue)
+[![Tests](https://github.com/kivicode/pipzap/actions/workflows/tests.yml/badge.svg)](https://github.com/kivicode/pipzap/actions/workflows/tests.yml)
 
 > Zap the mess out of the dependency jungles
 
