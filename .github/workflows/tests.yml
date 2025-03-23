@@ -1,19 +1,24 @@
-name: Publish to PyPI
+name: pre-commit
 
 on:
+  pull_request:
+    types: [ opened, synchronize, reopened ]
   push:
-    tags:
-      - 'v*'
+    branches:
+      - 'main'
+      - 'release/*'
+  workflow_dispatch:
 
 jobs:
-  publish:
+  tests:
     runs-on: ubuntu-latest
-
+    
     strategy:
       matrix:
         python-version: [3.11]
 
     steps:
+
       - name: Check out repository
         uses: actions/checkout@v4
 
@@ -34,8 +39,3 @@ jobs:
 
       - name: Run tests
         run: poetry run pytest
-      
-      - name: Publish to PyPI
-        env:
-          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
-        run: poetry publish --build --no-interaction
