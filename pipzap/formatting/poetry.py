@@ -112,12 +112,22 @@ class PoetryFormatter(DependenciesFormatter):
         sources = []
 
         for dep in self.deps:
-            if not dep.index or dep.index in seen_indexes:
+            if not dep.index:
                 continue
 
-            seen_indexes.add(dep.index)
-            source_name = dep.index.split("://", 1)[-1]
-            sources.append({"name": source_name, "url": dep.index})
+            index_key = str(dep.index)
+            if isinstance(dep.index, dict):
+                if "url" not in dep.index:
+                    continue
+
+                index_key = dep.index["url"]
+
+            if index_key in seen_indexes:
+                continue
+
+            seen_indexes.add(index_key)
+            source_name = index_key.split("://", 1)[-1]
+            sources.append({"name": source_name, "url": index_key})
 
         self.pyproject["tool"]["poetry"]["source"] = sources
 
