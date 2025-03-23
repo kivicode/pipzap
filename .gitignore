@@ -161,4 +161,7 @@ cython_debug/
 
 # MacOS system files
 .DS_Store
+
+# Local
 .history
+pipzap-temp

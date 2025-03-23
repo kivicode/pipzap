@@ -11,13 +11,16 @@ from pipzap.parsing.workspace import Workspace
 from pipzap.utils.io import read_toml
 
 DATA_DIR = Path("tests/data")
+REQUIREMENTS_DIR = DATA_DIR / "requirements"
+
+REQUIREMENTS_ENTRIES = set(REQUIREMENTS_DIR.rglob("*.txt")) - set(REQUIREMENTS_DIR.rglob("failing/**/*.txt"))
 
 
 def get_package_names(lock_data: dict) -> Set[str]:
     return {p["name"] for p in lock_data["package"]} - {ProjectConverter.DUMMY_PROJECT_NAME}
 
 
-@pytest.mark.parametrize("input_file", DATA_DIR.glob("*-requirements.txt"))
+@pytest.mark.parametrize("input_file", REQUIREMENTS_ENTRIES)
 def test_dependency_pruning(input_file):
     with Workspace(input_file) as workspace:
         ProjectConverter("3.10").convert_to_uv(workspace)
@@ -37,7 +40,7 @@ def test_dependency_pruning(input_file):
         pruned_packages = get_package_names(pruned_lock)
 
         assert pruned_packages == full_packages, (
-            f"Dependency mismatch for {input_file.name}:\n"
-            f"Missing: {full_packages - pruned_packages}\n"
+            f"Dependency mismatch for {input_file.name}: "
+            f"Missing: {full_packages - pruned_packages} "
             f"Extra: {pruned_packages - full_packages}"
         )
