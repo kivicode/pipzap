@@ -1,161 +1,99 @@
-from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
 from loguru import logger
-from typing_extensions import Literal
 
 from pipzap.core.dependencies import Dependency, ProjectDependencies
-from pipzap.core.resolver import DependenciesResolver
-from pipzap.exceptions import DependencyError, ParseError
-from pipzap.parsers import PoetryTomlParser, RequirementsTxtParser, UVTomlParser
-from pipzap.parsers.base import DependencyParser
-
-KnownParsersT = Literal["requirements-txt", "uv-toml", "poetry-toml"]
 
 
 class DependencyPruner:
-    """Prunes redundant dependencies from a project."""
+    """Prunes redundant (transitive) dependencies from parsed project dependencies tree."""
 
-    def __init__(self, python_version: str) -> None:
-        """Initializes a DependencyPruner instance.
-
-        Args:
-            python_version: A string representing the python version.
-
-        Raises:
-            ParseError: An error indicating an invalid python version specification.
-        """
-        if not python_version.strip():
-            raise ParseError(f"Invalid python version specified: {python_version}")
-
-        if python_version[0].isdigit():
-            python_version = f">={python_version}"
-
-        self.python_version = python_version
-
-    def prune(self, file_path: Path, parser_type: KnownParsersT) -> List[Dependency]:
-        """Prunes redundant dependencies from a project file.
+    @classmethod
+    def prune(cls, resolved_deps: ProjectDependencies) -> ProjectDependencies:
+        """Identifies and removes the redundant/transitive dependencies.
 
         Args:
-            file_path: A Path to the file containing dependency definitions.
-            parser_type: A string specifying the type of dependency parser.
+            resolved_deps: Parsed and resolved dependencies and the internal dependency tree to prune.
 
         Returns:
-            A list of Dependency objects after pruning redundant dependencies.
+            A copy of the original project dependencies with the redundant deps removed.
         """
-        parser = self._create_parser(parser_type)
-        project_deps, _ = self._parse_file(parser, file_path)
-        resolved_deps = self._resolve_dependencies(project_deps)
-        redundant = self._find_redundant_deps(resolved_deps.direct, resolved_deps.graph)
-        pruned = self._filter_redundant(resolved_deps.direct, redundant)
-        logger.info(f"Pruned {len(resolved_deps.direct) - len(pruned)} redundant dependencies")
-        return pruned
+        logger.debug(
+            f"Pruning {len(resolved_deps.direct)} direct deps, "  #
+            f"graph size: {len(resolved_deps.graph)}"
+        )
 
-    def _create_parser(self, parser_type: str) -> DependencyParser:
-        """Creates a dependency parser based on the provided parser type.
+        redundant = cls._find_redundant_deps(resolved_deps)
+        pruned = cls._filter_redundant(resolved_deps.direct, redundant)
+
+        logger.info(
+            f"Pruned {len(resolved_deps.direct) - len(pruned)} "  #
+            f"redundant dependencies, kept {len(pruned)}"
+        )
+        return ProjectDependencies(pruned, resolved_deps.graph, resolved_deps.py_version)
+
+    @classmethod
+    def _find_redundant_deps(
+        cls,
+        dependencies: ProjectDependencies,
+    ) -> Set[Tuple[str, Tuple[Optional[str], Optional[str]]]]:
+        """Finds redundant dependencies by comparing direct and transitive deps.
 
         Args:
-            parser_type: A string specifying the parser type.
+            dependencies: Project dependencies to find the redundancies in.
 
         Returns:
-            A DependencyParser instance.
-
-        Raises:
-            DependencyError: An error indicating an unsupported parser type.
+            A set of redundant dependency names with their context identifiers.
         """
-        if parser_type == "requirements-txt":
-            return RequirementsTxtParser()
 
-        if parser_type == "uv-toml":
-            return UVTomlParser()
+        direct_deps = {(dep.name.lower(), dep.context) for dep in dependencies.direct}
+        logger.debug(f"Direct deps: {', '.join(name for name, *_ in direct_deps)}")
 
-        if parser_type == "poetry-toml":
-            return PoetryTomlParser()
+        transitive_deps: Set[Tuple[str, Tuple[Optional[str], Optional[str]]]] = set()
+        for dep in dependencies.direct:
+            logger.debug(f"  {dep.name} (context: {dep.context})")
+            cls._collect_transitive_deps(dep.name.lower(), dep.context, dependencies.graph, transitive_deps)
 
-        raise DependencyError(f"Unsupported parser type: {parser_type}")
-
-    def _parse_file(
-        self, parser: DependencyParser, file_path: Path
-    ) -> Tuple[ProjectDependencies, Optional[str]]:
-        """Parses a file using the specified dependency parser.
-
-        Args:
-            parser: A DependencyParser instance.
-            file_path: A Path to the file to be parsed.
-
-        Returns:
-            A tuple containing a ProjectDependencies object and an optional string.
-
-        Raises:
-            DependencyError: An error indicating failure to parse the file.
-        """
-        try:
-            return parser.parse(file_path)
-        except Exception as e:
-            raise DependencyError(f"Failed to parse {file_path}: {e}") from e
-
-    def _resolve_dependencies(self, project_deps: ProjectDependencies) -> ProjectDependencies:
-        """Resolves dependencies for the project.
-
-        Args:
-            project_deps: A ProjectDependencies object representing the project's dependencies.
-
-        Returns:
-            A ProjectDependencies object with resolved dependencies.
-
-        Raises:
-            DependencyError: An error indicating failure in dependency resolution.
-        """
-        resolver = DependenciesResolver()
-        try:
-            return resolver.resolve(project_deps, self.python_version)
-        except Exception as e:
-            raise DependencyError(f"Failed to resolve dependencies: {e}") from e
-
-    def _find_redundant_deps(self, direct: List[Dependency], graph: Dict[str, List[str]]) -> Set[str]:
-        """Finds redundant dependencies that appear both as direct and transitive dependencies.
-
-        Args:
-            direct: A list of direct Dependency objects.
-            graph: A dictionary mapping dependency names to lists of transitive dependency names.
-
-        Returns:
-            A set of dependency names that are redundant.
-        """
-        direct_names = {dep.name.lower() for dep in direct}
-        transitive_deps: Set[str] = set()
-
-        for dep in direct:
-            self._collect_transitive_deps(dep.name.lower(), graph, transitive_deps)
-
-        redundant = direct_names & transitive_deps
+        redundant = direct_deps & transitive_deps
+        logger.debug(f"Redundant: {', '.join(name for name, *_ in redundant)}")
         return redundant
 
-    def _collect_transitive_deps(self, name: str, graph: Dict[str, List[str]], transitive: Set[str]) -> None:
+    @classmethod
+    def _collect_transitive_deps(
+        cls,
+        name: str,
+        context: Tuple[Optional[str], Optional[str]],
+        graph: Dict[str, List[str]],
+        transitive: Set[Tuple[str, Tuple[Optional[str], Optional[str]]]],
+    ) -> None:
         """Collects transitive dependencies recursively.
 
         Args:
-            name: A string representing the dependency name.
-            graph: A dictionary mapping dependency names to lists of transitive dependency names.
-            transitive: A set to which collected dependency names are added.
+            name: Name of the current root dependency to analyze.
+            context: A context key of the root dependency.
+            graph: A graph representation of the dependency tree.
+            transitive: A cumulative set of transitive dependencies identified.
         """
+        indent = "    "
         deps = graph.get(name, [])
-        for dep in deps:
-            if dep in transitive:
+        logger.debug(f"{indent}{name} -> {len(deps)} transitive")
+
+        for dep_name in deps:
+            dep_key = (dep_name.lower(), context)
+            if dep_key in transitive:
+                logger.debug(f"{indent * 2}{dep_name} (skipped)")
                 continue
 
-            transitive.add(dep)
-            self._collect_transitive_deps(dep, graph, transitive)
+            logger.debug(f"{indent * 2}{dep_name} (added)")
+            transitive.add(dep_key)
+            cls._collect_transitive_deps(dep_name.lower(), context, graph, transitive)
 
     @staticmethod
-    def _filter_redundant(direct: List[Dependency], redundant: Set[str]) -> List[Dependency]:
-        """Filters out redundant dependencies from the direct dependencies list.
-
-        Args:
-            direct: A list of direct Dependency objects.
-            redundant: A set of dependency names that are redundant.
-
-        Returns:
-            A list of Dependency objects that are not redundant.
-        """
-        return [dep for dep in direct if dep.name.lower() not in redundant]
+    def _filter_redundant(
+        direct: List[Dependency],
+        redundant: Set[Tuple[str, Tuple[Optional[str], Optional[str]]]],
+    ) -> List[Dependency]:
+        """Removes the redundant dependencies from direct deps."""
+        logger.debug(f"Filtering {len(direct)} deps against {len(redundant)} redundant")
+        filtered = [dep for dep in direct if (dep.name.lower(), dep.context) not in redundant]
+        return filtered
