@@ -34,7 +34,7 @@ jobs:
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       
       - name: Install dependencies
-        run: uv sync --frozen --with test
+        run: uv sync --frozen
 
       - name: Run tests
         run: uv run pytest
