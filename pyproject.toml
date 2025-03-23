@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pipzap"
-version = "0.2.0"
+version = "0.2.1"
 description = "Dependency optimization and pruning made simple"
 authors = ["KiviCode <kivicode.dev@gmail.com>"]
 license = "MIT"
