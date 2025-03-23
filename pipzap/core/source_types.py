@@ -17,7 +17,7 @@ class SourceType(Enum):
     def detect_format(cls, file_path: Path) -> "SourceType":
         """Attempts to guess the build system given a source file path."""
 
-        if file_path.name.endswith("requirements.txt"):
+        if "requirements" in file_path.name and ".txt" in file_path.suffixes:
             return cls.REQUIREMENTS
 
         if file_path.name != "pyproject.toml":
