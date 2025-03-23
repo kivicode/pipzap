@@ -3,10 +3,6 @@ name: pre-commit
 on:
   pull_request:
     types: [ opened, synchronize, reopened ]
-  push:
-    branches:
-      - 'main'
-      - 'release/*'
   workflow_dispatch:
 
 jobs:
