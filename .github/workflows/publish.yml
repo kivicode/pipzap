@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 jobs:
   publish:
@@ -34,7 +35,7 @@ jobs:
 
       - name: Run tests
         run: uv run pytest
-        
+
       - name: Build package
         run: uv build
 
