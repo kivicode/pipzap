@@ -1,8 +1,9 @@
-[tool.poetry]
+[project]
 name = "pipzap"
 version = "0.2.2"
 description = "Dependency optimization and pruning made simple"
-authors = ["KiviCode <kivicode.dev@gmail.com>"]
+authors = [{ name = "KiviCode", email = "kivicode.dev@gmail.com" }]
+
 license = "MIT"
 readme = "README.md"
 classifiers = [
@@ -22,22 +23,30 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
-[tool.poetry.scripts]
-pipzap = 'pipzap.__main__:main'
+requires-python = ">=3.8,<4.0"
+dependencies = [ #
+    "loguru>=0.7.3,<0.8",
+    "uv>=0.6.9,<0.7",
+    "tomlkit>=0.13.2",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.8,<4.0"
-loguru = "^0.7.3"
-uv = "^0.6.9"
-tomlkit = ">=0.13.2"
+[project.urls]
+Homepage = "https://pypi.org/project/pipzap/"
+Source = "https://github.com/kivicode/pipzap"
 
-[tool.poetry.group.dev.dependencies]
-mypy = "~1.4"
-pre-commit = "~2.21.0"
-ruff = "^0.11.2"
+[project.scripts]
+pipzap = "pipzap.__main__:main"
 
-[tool.poetry.group.test.dependencies]
-pytest = ">=7.4.4"
+[dependency-groups]
+dev = [ #
+    "mypy>=1.4",
+    "pre-commit>=2.21.0",
+    "ruff>=0.11.2",
+]
+test = ["pytest>=7.4.4"]
+
+[tool.uv]
+default-groups = ["dev", "test"]
 
 [tool.mypy]
 ignore_missing_imports = false
@@ -64,5 +73,5 @@ ignore = ["D202", "UP015", "UP035"]
 "__init__.py" = ["F401"]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
