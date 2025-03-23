@@ -1,10 +1,3 @@
-# uncompyle6 version 3.9.2
-# Python bytecode version base 3.8.0 (3413)
-# Decompiled from: Python 3.8.20 (default, Oct  3 2024, 10:22:23)
-# [Clang 14.0.6 ]
-# Embedded file name: /Users/kivicode/Documents/GitHub/pipzap/pipzap/cli.py
-# Compiled at: 2025-03-23 00:08:29
-# Size of source mod 2**32: 4075 bytes
 import argparse
 import sys
 from importlib.metadata import version
@@ -68,7 +61,11 @@ class PipZapCLI:
                 raise err
 
     def _output_results(
-        self, deps: List[Dependency], output: Optional[Path], out_format: SourceType, force: bool
+        self,
+        deps: ProjectDependencies,
+        output: Optional[Path],
+        out_format: SourceType,
+        force: bool,
     ) -> None:
         """Outputs the formatted pruned dependencies.
 
@@ -76,13 +73,14 @@ class PipZapCLI:
         """
         result = KNOWN_FORMATTERS[out_format](deps).format()
         if not output:
-            return print("\n" + result)
-        if output.is_file():
-            if not force:
-                raise ValueError(f"Output file {output} already exists. Specify --force to allow overriding")
+            print("\n" + result)
+            return
+
+        if output.is_file() and not force:
+            raise ValueError(f"Output file {output} already exists. Specify --force to allow overriding")
+
         output.write_text(result)
         logger.info(f"Results written to {output}")
-        return result
 
     def _setup_parser(self):
         self.parser.add_argument("file", type=Path, help="Path to the dependency file")

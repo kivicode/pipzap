@@ -1,6 +1,8 @@
 import sys
 from typing import Optional
+
 from loguru import logger
+
 from pipzap.core.source_types import SourceType
 from pipzap.exceptions import ResolutionError
 from pipzap.parsing.workspace import Workspace

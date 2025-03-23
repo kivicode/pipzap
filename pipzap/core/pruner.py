@@ -75,18 +75,18 @@ class DependencyPruner:
             transitive: A cumulative set of transitive dependencies identified.
         """
         indent = "    "
-        deps = graph.get(name, [])
-        logger.debug(f"{indent}{name} -> {len(deps)} transitive")
+        dep_names = graph.get(name, [])
+        logger.debug(f"{indent}{name} -> {len(dep_names)} transitive")
 
-        for dep_name in deps:
-            dep_key = (dep_name.lower(), context)
-            if dep_key in transitive:
-                logger.debug(f"{indent * 2}{dep_name} (skipped)")
+        for name in dep_names:
+            key = (name.lower(), context)
+            if key in transitive:
+                logger.debug(f"{indent * 2}{name} (skipped)")
                 continue
 
-            logger.debug(f"{indent * 2}{dep_name} (added)")
-            transitive.add(dep_key)
-            cls._collect_transitive_deps(dep_name.lower(), context, graph, transitive)
+            logger.debug(f"{indent * 2}{name} (added)")
+            transitive.add(key)
+            cls._collect_transitive_deps(name.lower(), context, graph, transitive)
 
     @staticmethod
     def _filter_redundant(
@@ -95,5 +95,4 @@ class DependencyPruner:
     ) -> List[Dependency]:
         """Removes the redundant dependencies from direct deps."""
         logger.debug(f"Filtering {len(direct)} deps against {len(redundant)} redundant")
-        filtered = [dep for dep in direct if (dep.name.lower(), dep.context) not in redundant]
-        return filtered
+        return [dep for dep in direct if (dep.name.lower(), dep.context) not in redundant]

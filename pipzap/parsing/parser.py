@@ -119,7 +119,10 @@ class DependenciesParser:
 
     @classmethod
     def _resolve_group_dependencies(
-        cls, group_name: str, dependency_groups: Dict[(str, Any)], visited: Optional[Set[str]] = None
+        cls,
+        group_name: str,
+        dependency_groups: Dict[(str, Any)],
+        visited: Optional[Set[str]] = None,
     ) -> List[str]:
         """Recursively resolves dependencies for a group.
 

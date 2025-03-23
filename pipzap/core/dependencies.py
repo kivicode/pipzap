@@ -9,16 +9,7 @@ from pipzap.utils.pretty_string import format_project_dependencies
 
 @dataclass
 class Dependency:
-    """Represents a single dependency with detailed attributes.
-
-    Attributes:
-        name:
-        version_constraint:
-        url:
-        group:
-        extra:
-        index:
-    """
+    """Represents a single dependency with detailed attributes."""
 
     name: str
     """Package name (e.g., "torch")."""
