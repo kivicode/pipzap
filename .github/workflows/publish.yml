@@ -34,7 +34,10 @@ jobs:
 
       - name: Run tests
         run: uv run pytest
-      
+        
+      - name: Build package
+        run: uv build
+
       - name: Publish to PyPI
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
