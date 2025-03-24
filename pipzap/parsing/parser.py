@@ -28,6 +28,7 @@ class DependenciesParser:
         indexes = cls._parse_indexes(project)
         direct = cls._build_direct_dependencies(project, indexes)
         graph = cls._build_dependency_graph(lock, direct)
+        cls._set_pinned_version(lock, direct)
 
         py_version = project["project"]["requires-python"]
         parsed = ProjectDependencies(direct, graph, py_version, project)
@@ -146,3 +147,13 @@ class DependenciesParser:
             ]
 
         return graph
+
+    @staticmethod
+    def _set_pinned_version(lock: Dict[str, Any], deps: List[Dependency]) -> None:
+        """Fills the pinned versions of the dependencies from `uv.lock`."""
+        versions = {package["name"]: package.get("version") for package in lock["package"]}
+        for dep in deps:
+            dep.pinned_version = version = versions.get(dep.name)
+
+            if not version:
+                logger.warning(f"Unable to determine a pinned version of {dep.name}")

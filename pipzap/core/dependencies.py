@@ -28,6 +28,9 @@ class Dependency:
     required_extras: Set[str] = frozenset()
     """Extras required by this dependency."""
 
+    pinned_version: Optional[str] = None
+    """Exact pinned version from uv.lock."""
+
     @property
     def key(self) -> DepKeyT:
         return (self.name.lower(), frozenset(self.groups), frozenset(self.extras))
