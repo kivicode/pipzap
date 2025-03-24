@@ -29,7 +29,8 @@ class DependenciesParser:
         direct = cls._build_direct_dependencies(project, indexes)
         graph = cls._build_dependency_graph(lock, direct)
 
-        parsed = ProjectDependencies(direct=direct, graph=graph, uv_pyproject_source=project)
+        py_version = project["project"]["requires-python"]
+        parsed = ProjectDependencies(direct, graph, py_version, project)
         logger.debug(f"Parsed dependencies:\n{str(parsed)}")
         return parsed
 

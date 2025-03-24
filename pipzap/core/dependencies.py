@@ -39,6 +39,7 @@ class ProjectDependencies:
 
     direct: List[Dependency]
     graph: Dict[DepKeyT, List[DepKeyT]]
+    py_version: Optional[str] = None
     uv_pyproject_source: Optional[dict] = None
 
     def __str__(self) -> str:
