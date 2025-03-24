@@ -23,14 +23,15 @@ def get_package_names(lock_data: dict) -> Set[str]:
 @pytest.mark.parametrize("input_file", REQUIREMENTS_ENTRIES)
 def test_dependency_pruning(input_file):
     with Workspace(input_file) as workspace:
+        # FIXME: Specify per-test python versions?
         ProjectConverter("3.10").convert_to_uv(workspace)
-        parsed = DependenciesParser().parse(workspace)
-        pruned = DependencyPruner().prune(parsed)
+        parsed = DependenciesParser.parse(workspace)
+        pruned = DependencyPruner.prune(parsed)
         full_lock = read_toml(workspace.base / "uv.lock")
 
         output_path = workspace.base / "pruned" / "pyproject.toml"
         output_path.parent.mkdir(exist_ok=True)
-        output_path.write_text(UVFormatter(pruned).format())
+        output_path.write_text(UVFormatter(workspace, pruned).format())
 
         with Workspace(output_path) as inner_workspace:
             inner_workspace.run(["uv", "lock"], ".")

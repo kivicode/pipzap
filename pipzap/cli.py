@@ -6,9 +6,8 @@ from typing import Dict, Optional, Type
 
 from loguru import logger
 
-from pipzap import __version__ as zap_version
+from pipzap import __version__ as zap_version, __uv_version__ as uv_version
 from pipzap.core import DependencyPruner, SourceType
-from pipzap.core.dependencies import ProjectDependencies
 from pipzap.formatting import PoetryFormatter, RequirementsTXTFormatter, UVFormatter
 from pipzap.formatting.base import DependenciesFormatter
 from pipzap.parsing import DependenciesParser, ProjectConverter, Workspace
@@ -39,7 +38,7 @@ class PipZapCLI:
                 level="INFO",
             )
 
-        logger.debug(f"Starting PipZap v{zap_version} (uv v{version('uv')})")
+        logger.debug(f"Starting PipZap v{zap_version} (uv v{uv_version})")
 
         if args.format is not None:
             args.format = SourceType(args.format)
@@ -52,7 +51,19 @@ class PipZapCLI:
                 parsed = DependenciesParser.parse(workspace)
                 pruned = DependencyPruner.prune(parsed)
 
-            return self._output_results(pruned, args.output, args.format or source_format, args.force)
+                result = KNOWN_FORMATTERS[args.format or source_format](workspace, pruned).format()
+
+            if not args.output:
+                print("\n" + result)
+                return
+
+            if args.output.is_file() and not args.force:
+                raise ValueError(
+                    f"Output file {args.output} already exists. Specify --force to allow overriding"
+                )
+
+            args.output.write_text(result)
+            logger.info(f"Results written to {args.output}")
 
         except Exception as err:
             if args.verbose:
@@ -62,28 +73,6 @@ class PipZapCLI:
 
             if do_raise:
                 raise err
-
-    def _output_results(
-        self,
-        deps: ProjectDependencies,
-        output: Optional[Path],
-        out_format: SourceType,
-        force: bool,
-    ) -> None:
-        """Outputs the formatted pruned dependencies.
-
-        The result is written to the specified output file or printed to stdout if no file is provided.
-        """
-        result = KNOWN_FORMATTERS[out_format](deps).format()
-        if not output:
-            print("\n" + result)
-            return
-
-        if output.is_file() and not force:
-            raise ValueError(f"Output file {output} already exists. Specify --force to allow overriding")
-
-        output.write_text(result)
-        logger.info(f"Results written to {output}")
 
     def _setup_parser(self):
         self.parser.add_argument("file", type=Path, help="Path to the dependency file")

@@ -81,7 +81,7 @@ class Workspace:
                 shutil.rmtree(self.base)
         logger.debug(f"Exited workspace: {self.base}")
 
-    def run(self, cmd: List[str], marker: str, log_filter: Callable[[str], bool] = lambda l: True):
+    def run(self, cmd: List[str], marker: str, log_filter: Callable[[str], bool] = lambda l: True) -> str:
         """Executes the specified (shell) command in the workspace directory and captures its output.
 
         Args:
@@ -91,6 +91,9 @@ class Workspace:
 
         Raises:
             ResolutionError: If the command fails to execute successfully
+
+        Returns:
+            stdout string of the command.
 
         Notes:
             - Command output is logged at debug level
@@ -118,6 +121,8 @@ class Workspace:
                         log_level = inner_logger.error
 
                 log_level(f"       >>> {line}", depth=1)
+
+            return result.stdout
 
         except subprocess.CalledProcessError as e:
             raise ResolutionError(f"Failed to execute {marker}:\n{e.stderr}") from e
