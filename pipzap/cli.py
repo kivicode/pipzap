@@ -14,7 +14,7 @@ from pipzap.parsing import DependenciesParser, ProjectConverter, Workspace
 
 KNOWN_FORMATTERS: Dict[SourceType, Type[DependenciesFormatter]] = {
     SourceType.POETRY: PoetryFormatter,
-    SourceType.REQUIREMENTS: RequirementsTXTFormatter,
+    SourceType.REQS: RequirementsTXTFormatter,
     SourceType.UV: UVFormatter,
 }
 

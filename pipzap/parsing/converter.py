@@ -41,7 +41,7 @@ class ProjectConverter:
         deps_format = SourceType.detect_format(workspace.path)
         logger.debug(f"Identified source format as '{deps_format.value}'")
 
-        if deps_format == SourceType.REQUIREMENTS:
+        if deps_format == SourceType.REQS:
             self._convert_from_requirements(workspace)
 
         elif deps_format == SourceType.POETRY:

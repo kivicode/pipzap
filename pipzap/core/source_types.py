@@ -8,7 +8,7 @@ from pipzap.utils.io import read_toml
 class SourceType(Enum):
     """Enumeration of known build systems."""
 
-    REQUIREMENTS = "requirements"
+    REQS = "reqs"
     POETRY = "poetry"
     UV = "uv"
 
@@ -17,7 +17,7 @@ class SourceType(Enum):
         """Attempts to guess the build system given a source file path."""
 
         if "requirements" in file_path.name and ".txt" in file_path.suffixes:
-            return cls.REQUIREMENTS
+            return cls.REQS
 
         if file_path.name != "pyproject.toml":
             raise ParseError(f"Cannot determine format of {file_path}")
