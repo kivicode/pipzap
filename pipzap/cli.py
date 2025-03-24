@@ -34,7 +34,7 @@ class PipZapCLI:
             logger.remove()
             logger.add(
                 sys.stderr,
-                format="<level>• {level: <7}</level> | <level>{message}</level>",
+                format="<level>• {message}</level>",
                 level="INFO",
             )
 
