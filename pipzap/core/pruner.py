@@ -1,8 +1,9 @@
-from typing import Dict, List, Optional, Set, Tuple
+from dataclasses import replace
+from typing import Dict, List, Set
 
 from loguru import logger
 
-from pipzap.core.dependencies import Dependency, ProjectDependencies
+from pipzap.core.dependencies import Dependency, DepKeyT, ProjectDependencies
 
 
 class DependencyPruner:
@@ -18,6 +19,7 @@ class DependencyPruner:
         Returns:
             A copy of the original project dependencies with the redundant deps removed.
         """
+        logger.debug(f"Direct deps: {', '.join(dep.name for dep in resolved_deps.direct)}")
         logger.debug(
             f"Pruning {len(resolved_deps.direct)} direct deps, "  #
             f"graph size: {len(resolved_deps.graph)}"
@@ -26,73 +28,50 @@ class DependencyPruner:
         redundant = cls._find_redundant_deps(resolved_deps)
         pruned = cls._filter_redundant(resolved_deps.direct, redundant)
 
+        logger.info(f"Redundant: {', '.join(name for name, *_ in redundant)}")
         logger.info(
             f"Pruned {len(resolved_deps.direct) - len(pruned)} "  #
             f"redundant dependencies, kept {len(pruned)}"
         )
-        return ProjectDependencies(pruned, resolved_deps.graph, resolved_deps.py_version)
+        return replace(resolved_deps, direct=pruned)
 
     @classmethod
-    def _find_redundant_deps(
-        cls,
-        dependencies: ProjectDependencies,
-    ) -> Set[Tuple[str, Tuple[Optional[str], Optional[str]]]]:
-        """Finds redundant dependencies by comparing direct and transitive deps.
+    def _find_redundant_deps(cls, dependencies: ProjectDependencies) -> Set[DepKeyT]:
+        """Identifies redundant direct dependencies."""
+        redundant = set()
 
-        Args:
-            dependencies: Project dependencies to find the redundancies in.
-
-        Returns:
-            A set of redundant dependency names with their context identifiers.
-        """
-
-        direct_deps = {(dep.name.lower(), dep.context) for dep in dependencies.direct}
-        logger.debug(f"Direct deps: {', '.join(name for name, *_ in direct_deps)}")
-
-        transitive_deps: Set[Tuple[str, Tuple[Optional[str], Optional[str]]]] = set()
         for dep in dependencies.direct:
-            logger.debug(f"  {dep.name} (context: {dep.context})")
-            cls._collect_transitive_deps(dep.name.lower(), dep.context, dependencies.graph, transitive_deps)
+            for other_dep in dependencies.direct:
+                if other_dep is dep:
+                    continue
 
-        redundant = direct_deps & transitive_deps
-        logger.debug(f"Redundant: {', '.join(name for name, *_ in redundant)}")
+                if cls._is_in_transitive(other_dep.key, dep.key, dependencies.graph):
+                    redundant.add(dep.key)
+                    break
+
         return redundant
 
     @classmethod
-    def _collect_transitive_deps(
-        cls,
-        name: str,
-        context: Tuple[Optional[str], Optional[str]],
-        graph: Dict[str, List[str]],
-        transitive: Set[Tuple[str, Tuple[Optional[str], Optional[str]]]],
-    ) -> None:
-        """Collects transitive dependencies recursively.
+    def _is_in_transitive(cls, root: DepKeyT, target: DepKeyT, graph: Dict[DepKeyT, List[DepKeyT]]) -> bool:
+        """Checks if target is in the transitive closure of root."""
+        visited = set()
+        stack = [root]
 
-        Args:
-            name: Name of the current root dependency to analyze.
-            context: A context key of the root dependency.
-            graph: A graph representation of the dependency tree.
-            transitive: A cumulative set of transitive dependencies identified.
-        """
-        indent = "    "
-        dep_names = graph.get(name, [])
-        logger.debug(f"{indent}{name} -> {len(dep_names)} transitive")
+        while stack:
+            current = stack.pop()
+            if current == target:
+                return True
 
-        for name in dep_names:
-            key = (name.lower(), context)
-            if key in transitive:
-                logger.debug(f"{indent * 2}{name} (skipped)")
+            if current in visited:
                 continue
 
-            logger.debug(f"{indent * 2}{name} (added)")
-            transitive.add(key)
-            cls._collect_transitive_deps(name.lower(), context, graph, transitive)
+            visited.add(current)
+            stack.extend(graph.get(current, []))
+
+        return False
 
     @staticmethod
-    def _filter_redundant(
-        direct: List[Dependency],
-        redundant: Set[Tuple[str, Tuple[Optional[str], Optional[str]]]],
-    ) -> List[Dependency]:
+    def _filter_redundant(direct: List[Dependency], redundant: Set[DepKeyT]) -> List[Dependency]:
         """Removes the redundant dependencies from direct deps."""
         logger.debug(f"Filtering {len(direct)} deps against {len(redundant)} redundant")
-        return [dep for dep in direct if (dep.name.lower(), dep.context) not in redundant]
+        return [dep for dep in direct if dep.key not in redundant]

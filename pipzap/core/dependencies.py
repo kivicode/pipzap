@@ -1,93 +1,45 @@
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
-
-from packaging.requirements import Requirement
-from typing_extensions import Self
+from typing import Dict, FrozenSet, List, Optional, Set, Tuple
 
 from pipzap.utils.pretty_string import format_project_dependencies
+
+DepKeyT = Tuple[str, FrozenSet[str], FrozenSet[str]]
 
 
 @dataclass
 class Dependency:
-    """Represents a single dependency with detailed attributes."""
+    """Represents a dependency with potentially multiple contexts and its own extras."""
 
     name: str
     """Package name (e.g., "torch")."""
 
-    version_constraint: Optional[str] = None
-    """ Version specifier (e.g., ">=4.12.2"), if applicable."""
+    groups: Set[str] = frozenset()
+    """Group names the dependency belongs to."""
 
-    url: Optional[str] = None
-    """Direct URL if the dependency is sourced from a specific location."""
+    extras: Set[str] = frozenset()
+    """Names of extras the dependency belongs to."""
 
-    group: Optional[str] = None
-    """Name of the dependency group it belongs to, if any."""
+    marker: Optional[str] = None
+    """Marker of the dependency (e.g., "python_version >= '3.8'")."""
 
-    extra: Optional[str] = None
-    """Name of the extra it belongs to, if any."""
-    # TODO: Should it be a set?
+    index: Optional[str] = None
+    """Name of the custom index to use for the dependency."""
 
-    index: Optional[str] = None  # For custom indexes
-    """Source index name (e.g., "pytorch-cu124"), if specified."""
-
-    source: Optional[Dict[str, str]] = None
-    """Source URL for Git, VCS, or other sources."""
-
-    pinned_version: Optional[str] = None
-    """Explicit pinned version, if provided."""
-
-    @classmethod
-    def from_string(
-        cls,
-        raw_requirement: str,
-        group: Optional[str] = None,
-        extra: Optional[str] = None,
-        index: Optional[str] = None,
-        source: Optional[Dict[str, str]] = None,
-    ) -> Self:
-        """Create a Dependency instance from a requirement string.
-
-        Args:
-            raw_requirement: The raw dependency string (e.g., "torch>=2.0.0").
-            group: The group name, if applicable.
-            extra: The extra name, if applicable.
-            index: The index name, if specified.
-            source: The source URL, if applicable.
-
-        Returns:
-            A Dependency instance with parsed attributes.
-        """
-        req = Requirement(raw_requirement)
-        if req.url:
-            return cls(name=req.name, url=req.url, group=group, extra=extra, source=source)
-
-        return cls(
-            name=req.name,
-            version_constraint=str(req.specifier),
-            group=group,
-            extra=extra,
-            index=index,
-            source=source,
-        )
+    required_extras: Set[str] = frozenset()
+    """Extras required by this dependency."""
 
     @property
-    def context(self) -> Tuple[Optional[str], Optional[str]]:
-        """A unique context identifier in a form of a group+extra tuple."""
-        return (self.group, self.extra)
+    def key(self) -> DepKeyT:
+        return (self.name.lower(), frozenset(self.groups), frozenset(self.extras))
 
 
 @dataclass
 class ProjectDependencies:
-    """Intermediate representation of project dependencies."""
+    """Represents the project's dependencies with context."""
 
     direct: List[Dependency]
-    """A list of direct dependencies."""
+    graph: Dict[DepKeyT, List[DepKeyT]]
+    uv_pyproject_source: Optional[dict] = None
 
-    graph: Dict[str, List[str]]
-    """A mapping of dependency names to lists of transitive dependencies."""
-
-    py_version: Optional[str] = None
-    """Version (or constraint) of the Python used to generate the dependencies."""
-
-    def __str__(self):
+    def __str__(self) -> str:
         return format_project_dependencies(self)
