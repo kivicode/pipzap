@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from pipzap.core.dependencies import ProjectDependencies
+from pipzap.parsing.workspace import Workspace
 
 
 class DependenciesFormatter(ABC):
@@ -9,11 +10,13 @@ class DependenciesFormatter(ABC):
     Turns parsed project dependencies into one of the standard packaging formats.
     """
 
-    def __init__(self, dependencies: ProjectDependencies):
+    def __init__(self, workspace: Workspace, dependencies: ProjectDependencies):
         """
         Args:
+            workspace: Current conversion workspace.
             dependencies: Parsed project dependencies to format.
         """
+        self.workspace = workspace
         self.python_version = dependencies.py_version
         self.project = dependencies.uv_pyproject_source
         self.deps = dependencies.direct
