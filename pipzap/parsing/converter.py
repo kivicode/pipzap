@@ -92,10 +92,15 @@ class ProjectConverter:
 
         Relies on the `uvx migrate-to-uv` tool.
         """
-        workspace.run(["uvx", "migrate-to-uv"], "conversion")
+        workspace.run(["uvx", "migrate-to-uv", "--keep-current-data", "--skip-lock"], "conversion")
 
         self._try_inject_python_version(workspace)
         workspace.run(["uv", "lock"], "resolution")
+
+        pyproject_path = workspace.base / "pyproject.toml"
+        pyproject = read_toml(pyproject_path)
+        pyproject["tool"] = {key: val for key, val in pyproject["tool"].items() if key != "poetry"}
+        write_toml(pyproject, pyproject_path)
 
     def _convert_from_uv(self, workspace: Workspace):
         """Pass-though uv-to-uv conversion. Makes sure to perform locking if not done yet."""
