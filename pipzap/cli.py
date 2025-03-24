@@ -46,9 +46,11 @@ class PipZapCLI:
 
         try:
             with Workspace(args.file) as workspace:
+                logger.debug(f"Source data:\n{workspace.path.read_text()}")
+
                 source_format = ProjectConverter(args.python_version).convert_to_uv(workspace)
-                parsed = DependenciesParser().parse(workspace)
-                pruned = DependencyPruner().prune(parsed)
+                parsed = DependenciesParser.parse(workspace)
+                pruned = DependencyPruner.prune(parsed)
 
             return self._output_results(pruned, args.output, args.format or source_format, args.force)
 
