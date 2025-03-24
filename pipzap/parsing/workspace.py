@@ -112,6 +112,7 @@ class Workspace:
 
                 log_level = inner_logger.debug
                 tokens = set(re.split("\W+", line.lower()))
+                padding = " " * 7
 
                 if log_filter(line):
                     if tokens & {"warning", "warn"}:
@@ -120,7 +121,10 @@ class Workspace:
                     if tokens & {"error"}:
                         log_level = inner_logger.error
 
-                log_level(f"       >>> {line}", depth=1)
+                    if log_level != inner_logger.debug:
+                        padding = f"[{cmd[0][: len(padding)]}]".rjust(len(padding))
+
+                log_level(f"{padding} >>> {line}", depth=1)
 
             return result.stdout
 

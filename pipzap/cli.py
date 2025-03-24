@@ -1,12 +1,12 @@
 import argparse
 import sys
-from importlib.metadata import version
 from pathlib import Path
 from typing import Dict, Optional, Type
 
 from loguru import logger
 
-from pipzap import __version__ as zap_version, __uv_version__ as uv_version
+from pipzap import __uv_version__ as uv_version
+from pipzap import __version__ as zap_version
 from pipzap.core import DependencyPruner, SourceType
 from pipzap.formatting import PoetryFormatter, RequirementsTXTFormatter, UVFormatter
 from pipzap.formatting.base import DependenciesFormatter
@@ -43,6 +43,8 @@ class PipZapCLI:
         if args.format is not None:
             args.format = SourceType(args.format)
 
+        logger.success(f"Starting processing {args.file}")
+
         try:
             with Workspace(args.file) as workspace:
                 logger.debug(f"Source data:\n{workspace.path.read_text()}")
@@ -54,6 +56,7 @@ class PipZapCLI:
                 result = KNOWN_FORMATTERS[args.format or source_format](workspace, pruned).format()
 
             if not args.output:
+                logger.success(f"Result:")
                 print("\n" + result)
                 return
 
@@ -63,7 +66,7 @@ class PipZapCLI:
                 )
 
             args.output.write_text(result)
-            logger.info(f"Results written to {args.output}")
+            logger.success(f"Results written to {args.output}")
 
         except Exception as err:
             if args.verbose:
