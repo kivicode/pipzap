@@ -32,11 +32,7 @@ class PipZapCLI:
 
         if not args.verbose:
             logger.remove()
-            logger.add(
-                sys.stderr,
-                format="<level>• {message}</level>",
-                level="INFO",
-            )
+            logger.add(sys.stderr, format="<level>• {message}</level>", level="INFO")
 
         logger.debug(f"Starting PipZap v{zap_version} (uv v{uv_version})")
 
