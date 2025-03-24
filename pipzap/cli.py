@@ -39,9 +39,15 @@ class PipZapCLI:
         if args.format is not None:
             args.format = SourceType(args.format)
 
-        logger.success(f"Starting processing {args.file}")
-
         try:
+            if args.output and args.output.is_file() and not args.force:
+                raise ValueError(
+                    f"Output file {args.output} already exists. "  #
+                    "Specify --force to allow overriding"
+                )
+
+            logger.success(f"Starting processing {args.file}")
+
             with Workspace(args.file) as workspace:
                 logger.debug(f"Source data:\n{workspace.path.read_text()}")
 
@@ -55,11 +61,6 @@ class PipZapCLI:
                 logger.success(f"Result:")
                 print("\n" + result)
                 return
-
-            if args.output.is_file() and not args.force:
-                raise ValueError(
-                    f"Output file {args.output} already exists. Specify --force to allow overriding"
-                )
 
             args.output.write_text(result)
             logger.success(f"Results written to {args.output}")
