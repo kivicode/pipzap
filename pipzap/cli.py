@@ -34,7 +34,11 @@ class PipZapCLI:
             logger.remove()
             logger.add(sys.stderr, format="<level>• {message}</level>", level="INFO")
 
-        logger.debug(f"Starting PipZap v{zap_version} (uv v{uv_version})")
+        version_level = logger.debug if not args.version else logger.info
+        version_level(f"Starting PipZap v{zap_version} (uv v{uv_version})")
+
+        if args.version:
+            return
 
         if args.format is not None:
             args.format = SourceFormat(args.format)
@@ -103,4 +107,10 @@ class PipZapCLI:
             type=str,
             default=None,
             help="Python version (required for requirements.txt)",
+        )
+        self.parser.add_argument(
+            "-V",
+            "--version",
+            action="store_true",
+            help="Show the version of pipzap",
         )
