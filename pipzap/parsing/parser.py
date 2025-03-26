@@ -3,7 +3,8 @@ from typing import Any, Dict, List, Optional, Set
 from loguru import logger
 from packaging.requirements import Requirement
 
-from pipzap.core.dependencies import Dependency, ProjectDependencies
+from pipzap.core.dependencies import Dependency, DepKeyT, ProjectDependencies
+from pipzap.core.source_format import SourceFormat
 from pipzap.parsing.workspace import Workspace
 from pipzap.utils.io import read_toml
 
@@ -12,26 +13,31 @@ class DependenciesParser:
     """Parser for uv project dependencies from `pyproject.toml` and `uv.lock`."""
 
     @classmethod
-    def parse(cls, workspace: Workspace) -> ProjectDependencies:
+    def parse(cls, workspace: Workspace, source_format: SourceFormat) -> ProjectDependencies:
         """Parse project dependencies from `pyproject.toml` and `uv.lock` into an internal runtime representation.
 
         Args:
             workspace: The workspace containing the project files.
+            source_format: The format of the original dependencies definition.
 
         Returns:
             A ProjectDependencies instance with all dependencies and the extract information,
             such as groups, extras, etc.
         """
+        original_project: Optional[dict] = None
+        if workspace.backup.suffix == ".toml":
+            original_project = read_toml(workspace.backup)
+
         project = read_toml(workspace.base / "pyproject.toml")
         lock = read_toml(workspace.base / "uv.lock")
 
         indexes = cls._parse_indexes(project)
         direct = cls._build_direct_dependencies(project, indexes)
-        direct = cls._add_pinned_versions(direct, lock)
-        graph = cls._build_dependency_graph(lock)
+        graph = cls._build_dependency_graph(lock, direct)
+        cls._set_pinned_version(lock, direct)
 
         py_version = project["project"]["requires-python"]
-        parsed = ProjectDependencies(direct=direct, graph=graph, py_version=py_version)
+        parsed = ProjectDependencies(direct, graph, source_format, py_version, original_project, project)
         logger.debug(f"Parsed dependencies:\n{str(parsed)}")
         return parsed
 
@@ -49,9 +55,7 @@ class DependenciesParser:
         return {index["name"]: index["url"] for index in index_list}
 
     @classmethod
-    def _build_direct_dependencies(
-        cls, project: Dict[(str, Any)], indexes: Dict[(str, str)]
-    ) -> List[Dependency]:
+    def _build_direct_dependencies(cls, project: Dict[str, Any], indexes: Dict[str, str]) -> List[Dependency]:
         """Builds a list of direct dependencies from `pyproject.toml`.
 
         Args:
@@ -65,134 +69,94 @@ class DependenciesParser:
         sources = project.get("tool", {}).get("uv", {}).get("sources", {})
 
         # [project.dependencies]
-        main_deps = project["project"].get("dependencies", [])
-        for req in main_deps:
-            direct.append(cls._parse_dependency(req, sources, indexes, group=None, extra=None))
+        for req in project.get("project", {}).get("dependencies", []):
+            direct.append(cls._parse_requirement(req, set(), set(), sources, indexes))
 
         # [project.optional-dependencies]
-        optional_deps = project["project"].get("optional-dependencies", {})
-        for extra, deps in optional_deps.items():
+        for extra, deps in project.get("project", {}).get("optional-dependencies", {}).items():
             for req in deps:
-                direct.append(cls._parse_dependency(req, sources, indexes, group=None, extra=extra))
+                direct.append(cls._parse_requirement(req, set(), {extra}, sources, indexes))
 
         # [dependency-groups]
-        dependency_groups = project.get("dependency-groups", {})
-        for group_name in dependency_groups:
-            resolved_deps = cls._resolve_group_dependencies(group_name, dependency_groups)
+        for group, deps in project.get("dependency-groups", {}).items():
+            for dep in deps:
+                if not isinstance(dep, str):
+                    logger.warning(f"Found a non-flat dependency-group: {dep}. This is not implemented yet.")
+                    continue
 
-            for req in resolved_deps:
-                direct.append(cls._parse_dependency(req, sources, indexes, group=group_name, extra=None))
+                direct.append(cls._parse_requirement(dep, {group}, set(), sources, indexes))
 
         return direct
 
     @staticmethod
-    def _parse_dependency(
-        raw_requirement: str,
-        sources: Dict[(str, Any)],
-        indexes: Dict[(str, str)],
-        group: Optional[str] = None,
-        extra: Optional[str] = None,
+    def _parse_requirement(
+        req_str: str,
+        groups: Set[str],
+        extras: Set[str],
+        sources: Dict[str, Any],
+        indexes: Dict[str, str],
     ) -> Dependency:
-        """Parses a single dependency string with index information.
+        """Parse a single requirement string into a Dependency object."""
+        req = Requirement(req_str)
+        name = req.name
+        source = sources.get(name, {})
 
-        Args:
-            raw_requirement: The raw dependency string (e.g., "torch" or "torch~=2.1.0").
-            sources: Dictionary from `[tool.uv.sources]`.
-            indexes: Dictionary of index names to URLs.
-            group: The group name, if applicable.
-            extra: The extra name, if applicable.
-
-        Returns:
-            A Dependency instance.
-        """
-        req_name = Requirement(raw_requirement).name
-        source_info = sources.get(req_name)
-
-        if not source_info:
-            return Dependency.from_string(raw_requirement, group, extra)
-
-        if "index" not in source_info:
-            return Dependency.from_string(raw_requirement, group, extra, source_info)
-
-        index_url = indexes.get(source_info["index"])
-        return Dependency.from_string(raw_requirement, group, extra, index_url, source_info)
-
-    @classmethod
-    def _resolve_group_dependencies(
-        cls,
-        group_name: str,
-        dependency_groups: Dict[(str, Any)],
-        visited: Optional[Set[str]] = None,
-    ) -> List[str]:
-        """Recursively resolves dependencies for a group.
-
-        Args:
-            group_name: The name of the group to resolve.
-            dependency_groups: Dictionary of all dependency groups.
-            visited: Set of visited group names to detect circular references.
-
-        Returns:
-            List of requirement strings for the group.
-
-        Raises:
-            ValueError: If a circular dependency is detected.
-        """
-        if visited is None:
-            visited = set()
-
-        if group_name in visited:
-            raise ValueError(f"Circular dependency in group {group_name}")
-
-        visited.add(group_name)
-
-        dependencies = []
-        group = dependency_groups.get(group_name, [])
-        for item in group:
-            if isinstance(item, str):
-                dependencies.append(item)
-                continue
-
-            if not isinstance(item, dict) and "include-group" not in item:
-                continue
-
-            included_group = item["include-group"]
-            dependencies.extend(cls._resolve_group_dependencies(included_group, dependency_groups, visited))
-
-        visited.remove(group_name)
-        return dependencies
+        return Dependency(
+            name=name,
+            groups=frozenset(groups),
+            extras=frozenset(extras),
+            marker=str(req.marker) if req.marker else None,
+            index=indexes.get(source.get("index")) if "index" in source else None,
+            required_extras=frozenset(req.extras or []),
+        )
 
     @staticmethod
-    def _add_pinned_versions(dependencies: List[Dependency], lock: Dict[(str, Any)]) -> List[Dependency]:
-        """Adds explicit pinned versions to each dependency.
+    def _build_dependency_graph(lock: Dict[str, Any], deps: List[Dependency]) -> Dict[DepKeyT, List[DepKeyT]]:
+        """Parse the resolved dependency graph from uv.lock."""
+        graph = {}
+        direct_map = {dep.key: dep for dep in deps}
 
-        Args:
-            dependencies: Current list of all parsed dependencies.
-            lock: Parsed `uv.lock` dictionary.
+        for package in lock.get("package", []):
+            name = package["name"].lower()
 
-        Returns:
-            List of input dependencies with the pinned versions filled in.
-        """
-        locked_versions = {dep["name"]: dep["version"] for dep in lock["package"]}
+            for d_name, groups, extras in direct_map:
+                if d_name != name:
+                    continue
 
-        for dep in dependencies:
-            dep.pinned_version = locked_versions.get(dep.name)
+                key = (name, groups, extras)
+                package_deps: List[DepKeyT] = [
+                    (dep_name["name"].lower(), frozenset(), frozenset())
+                    for dep_name in package.get("dependencies", [])
+                ]
 
-            if dep.pinned_version is None:
-                logger.warning(f"Unable to determine version of {dep.name}")
+                for i, (dep_name, _, _) in enumerate(package_deps):
+                    if (dep_name, frozenset(), frozenset()) not in direct_map:
+                        continue
 
-        return dependencies
+                    direct_dep = direct_map[(dep_name, frozenset(), frozenset())]
+                    package_deps[i] = (dep_name, frozenset(direct_dep.groups), frozenset(direct_dep.extras))
+
+                graph[key] = package_deps
+
+        for package in lock.get("package", []):
+            name = package["name"].lower()
+            key = (name, frozenset(), frozenset())
+            if key in graph:
+                continue
+
+            graph[key] = [
+                (dep["name"].lower(), frozenset(), frozenset())  #
+                for dep in package.get("dependencies", [])
+            ]
+
+        return graph
 
     @staticmethod
-    def _build_dependency_graph(lock: Dict[(str, Any)]) -> Dict[(str, List[str])]:
-        """Build the transitive dependency graph from uv.lock.
+    def _set_pinned_version(lock: Dict[str, Any], deps: List[Dependency]) -> None:
+        """Fills the pinned versions of the dependencies from `uv.lock`."""
+        versions = {package["name"]: package.get("version") for package in lock["package"]}
+        for dep in deps:
+            dep.pinned_version = version = versions.get(dep.name)
 
-        Args:
-            lock: Parsed `uv.lock` dictionary.
-
-        Returns:
-            Dictionary mapping package names to their dependencies.
-        """
-        return {
-            package["name"]: [dep["name"] for dep in package.get("dependencies", [])]
-            for package in lock["package"]
-        }
+            if not version:
+                logger.warning(f"Unable to determine a pinned version of {dep.name}")

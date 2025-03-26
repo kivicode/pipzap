@@ -3,7 +3,7 @@ from typing import Optional
 
 from loguru import logger
 
-from pipzap.core.source_types import SourceType
+from pipzap.core.source_format import SourceFormat
 from pipzap.exceptions import ResolutionError
 from pipzap.parsing.workspace import Workspace
 from pipzap.utils.io import read_toml, write_toml
@@ -25,7 +25,7 @@ class ProjectConverter:
 
         self.py_version = py_version
 
-    def convert_to_uv(self, workspace: Workspace) -> SourceType:
+    def convert_to_uv(self, workspace: Workspace) -> SourceFormat:
         """Performs the source-agnostic conversion of a dependencies file into the `uv` format.
 
         May operate in-place for certain source formats, but only within the workspace.
@@ -38,16 +38,16 @@ class ProjectConverter:
         Returns:
             The source file format identified.
         """
-        deps_format = SourceType.detect_format(workspace.path)
+        deps_format = SourceFormat.detect_format(workspace.path)
         logger.debug(f"Identified source format as '{deps_format.value}'")
 
-        if deps_format == SourceType.REQUIREMENTS:
+        if deps_format == SourceFormat.REQS:
             self._convert_from_requirements(workspace)
 
-        elif deps_format == SourceType.POETRY:
+        elif deps_format == SourceFormat.POETRY:
             self._convert_from_poetry(workspace)
 
-        elif deps_format == SourceType.UV:
+        elif deps_format == SourceFormat.UV:
             self._convert_from_uv(workspace)
 
         else:
@@ -72,7 +72,7 @@ class ProjectConverter:
             )
 
         workspace.run(
-            ["uvx", "migrate-to-uv"],
+            ["uvx", "migrate-to-uv", "--package-manager", "pip"],
             "conversion",
             log_filter=lambda line: "No `requires-python` value found in the workspace." not in line,
         )
@@ -92,10 +92,18 @@ class ProjectConverter:
 
         Relies on the `uvx migrate-to-uv` tool.
         """
-        workspace.run(["uvx", "migrate-to-uv"], "conversion")
+        workspace.run(
+            ["uvx", "migrate-to-uv", "--keep-current-data", "--skip-lock", "--package-manager", "poetry"],
+            "conversion",
+        )
 
         self._try_inject_python_version(workspace)
         workspace.run(["uv", "lock"], "resolution")
+
+        pyproject_path = workspace.base / "pyproject.toml"
+        pyproject = read_toml(pyproject_path)
+        pyproject["tool"] = {key: val for key, val in pyproject["tool"].items() if key != "poetry"}
+        write_toml(pyproject, pyproject_path)
 
     def _convert_from_uv(self, workspace: Workspace):
         """Pass-though uv-to-uv conversion. Makes sure to perform locking if not done yet."""

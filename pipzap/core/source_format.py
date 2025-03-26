@@ -5,19 +5,19 @@ from pipzap.exceptions import ParseError
 from pipzap.utils.io import read_toml
 
 
-class SourceType(Enum):
+class SourceFormat(Enum):
     """Enumeration of known build systems."""
 
-    REQUIREMENTS = "requirements"
+    REQS = "reqs"
     POETRY = "poetry"
     UV = "uv"
 
     @classmethod
-    def detect_format(cls, file_path: Path) -> "SourceType":
+    def detect_format(cls, file_path: Path) -> "SourceFormat":
         """Attempts to guess the build system given a source file path."""
 
         if "requirements" in file_path.name and ".txt" in file_path.suffixes:
-            return cls.REQUIREMENTS
+            return cls.REQS
 
         if file_path.name != "pyproject.toml":
             raise ParseError(f"Cannot determine format of {file_path}")

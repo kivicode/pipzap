@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Dict, List, Optional
 
 if TYPE_CHECKING:
-    from pipzap.core.dependencies import Dependency, ProjectDependencies
+    from pipzap.core.dependencies import Dependency, DepKeyT, ProjectDependencies
 
 
 def format_project_dependencies(deps: "ProjectDependencies") -> str:
@@ -50,47 +50,24 @@ def _get_direct_deps_lines(direct_deps: List["Dependency"]) -> List[str]:
     if not direct_deps:
         return [f"{INDENT}(none)"]
 
-    lines = []
     sorted_deps = sorted(direct_deps, key=(lambda x: x.name.lower()))
-
-    for dep in sorted_deps:
-        base = f"{INDENT}{dep.name}"
-        version = _get_version_string(dep)
-        attributes = _get_dep_attributes(dep)
-        line = base + version + attributes
-        lines.append(line)
-
-    return lines
-
-
-def _get_version_string(dep: "Dependency") -> str:
-    if dep.pinned_version:
-        return f" ({dep.pinned_version})"
-
-    if dep.version_constraint:
-        return f" {dep.version_constraint}"
-
-    return ""
+    return [f"{INDENT}{dep.name}" + _get_dep_attributes(dep) for dep in sorted_deps]
 
 
 def _get_dep_attributes(dep: "Dependency") -> str:
     attributes = []
 
-    if dep.extra:
-        attributes.append(f"extra={dep.extra}")
+    if dep.marker:
+        attributes.append(f"marker={dep.index}")
 
-    elif dep.group:
-        attributes.append(f"group={dep.group}")
+    if dep.extras:
+        attributes.append(f"extras=[{', '.join(dep.extras)}]")
+
+    if dep.groups:
+        attributes.append(f"groups=[{', '.join(dep.groups)}]")
 
     if dep.index:
         attributes.append(f"index={dep.index}")
-
-    if dep.url:
-        attributes.append(f"url={dep.url}")
-
-    if dep.source:
-        source_str = ",".join(f"{k}={v}" for k, v in dep.source.items())
-        attributes.append(f"source={{{source_str}}}")
 
     if not attributes:
         return ""
@@ -98,7 +75,7 @@ def _get_dep_attributes(dep: "Dependency") -> str:
     return f" [{', '.join(attributes)}]"
 
 
-def _get_graph_lines(graph: Dict[(str, List[str])]) -> List[str]:
+def _get_graph_lines(graph: Dict["DepKeyT", List["DepKeyT"]]) -> List[str]:
     if not graph:
         return [f"{INDENT}(none)"]
 
@@ -107,7 +84,7 @@ def _get_graph_lines(graph: Dict[(str, List[str])]) -> List[str]:
 
     for parent in sorted_parents:
         children = graph[parent]
-        lines.append(f"{INDENT}{parent} ->")
+        lines.append(f"{INDENT}{parent[0]} ->")
 
         if not children:
             lines.append(f"{INDENT * 2}(no transitive dependencies)")
@@ -115,6 +92,6 @@ def _get_graph_lines(graph: Dict[(str, List[str])]) -> List[str]:
 
         sorted_children = sorted(children)
         for child in sorted_children:
-            lines.append(f"{INDENT * 2}{child}")
+            lines.append(f"{INDENT * 2}{child[0]}")
 
     return lines

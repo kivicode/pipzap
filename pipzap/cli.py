@@ -1,22 +1,21 @@
 import argparse
 import sys
-from importlib.metadata import version
 from pathlib import Path
 from typing import Dict, Optional, Type
 
 from loguru import logger
 
+from pipzap import __uv_version__ as uv_version
 from pipzap import __version__ as zap_version
-from pipzap.core import DependencyPruner, SourceType
-from pipzap.core.dependencies import ProjectDependencies
+from pipzap.core import DependencyPruner, SourceFormat
 from pipzap.formatting import PoetryFormatter, RequirementsTXTFormatter, UVFormatter
 from pipzap.formatting.base import DependenciesFormatter
 from pipzap.parsing import DependenciesParser, ProjectConverter, Workspace
 
-KNOWN_FORMATTERS: Dict[SourceType, Type[DependenciesFormatter]] = {
-    SourceType.POETRY: PoetryFormatter,
-    SourceType.REQUIREMENTS: RequirementsTXTFormatter,
-    SourceType.UV: UVFormatter,
+KNOWN_FORMATTERS: Dict[SourceFormat, Type[DependenciesFormatter]] = {
+    SourceFormat.POETRY: PoetryFormatter,
+    SourceFormat.REQS: RequirementsTXTFormatter,
+    SourceFormat.UV: UVFormatter,
 }
 
 
@@ -33,24 +32,38 @@ class PipZapCLI:
 
         if not args.verbose:
             logger.remove()
-            logger.add(
-                sys.stderr,
-                format="<level>• {level: <7}</level> | <level>{message}</level>",
-                level="INFO",
-            )
+            logger.add(sys.stderr, format="<level>• {message}</level>", level="INFO")
 
-        logger.debug(f"Starting PipZap v{zap_version} (uv v{version('uv')})")
+        logger.debug(f"Starting PipZap v{zap_version} (uv v{uv_version})")
 
         if args.format is not None:
-            args.format = SourceType(args.format)
+            args.format = SourceFormat(args.format)
 
         try:
-            with Workspace(args.file) as workspace:
-                source_format = ProjectConverter(args.python_version).convert_to_uv(workspace)
-                parsed = DependenciesParser().parse(workspace)
-                pruned = DependencyPruner().prune(parsed)
+            if args.output and args.output.is_file() and not args.override:
+                raise ValueError(
+                    f"Output file {args.output} already exists. "  #
+                    "Specify --override to allow overriding"
+                )
 
-            return self._output_results(pruned, args.output, args.format or source_format, args.force)
+            logger.success(f"Starting processing {args.file}")
+
+            with Workspace(args.file, args.no_isolation, extra_backup_filenames=["uv.lock"]) as workspace:
+                logger.debug(f"Source data:\n{workspace.path.read_text()}")
+
+                source_format = ProjectConverter(args.python_version).convert_to_uv(workspace)
+                parsed = DependenciesParser.parse(workspace, source_format)
+                pruned = DependencyPruner.prune(parsed)
+
+                result = KNOWN_FORMATTERS[args.format or source_format](workspace, pruned).format()
+
+            if not args.output:
+                logger.success(f"Result:")
+                print("\n" + result)
+                return
+
+            args.output.write_text(result)
+            logger.success(f"Results written to {args.output}")
 
         except Exception as err:
             if args.verbose:
@@ -60,28 +73,6 @@ class PipZapCLI:
 
             if do_raise:
                 raise err
-
-    def _output_results(
-        self,
-        deps: ProjectDependencies,
-        output: Optional[Path],
-        out_format: SourceType,
-        force: bool,
-    ) -> None:
-        """Outputs the formatted pruned dependencies.
-
-        The result is written to the specified output file or printed to stdout if no file is provided.
-        """
-        result = KNOWN_FORMATTERS[out_format](deps).format()
-        if not output:
-            print("\n" + result)
-            return
-
-        if output.is_file() and not force:
-            raise ValueError(f"Output file {output} already exists. Specify --force to allow overriding")
-
-        output.write_text(result)
-        logger.info(f"Results written to {output}")
 
     def _setup_parser(self):
         self.parser.add_argument("file", type=Path, help="Path to the dependency file")
@@ -93,7 +84,12 @@ class PipZapCLI:
             default=None,
             help="Output file (defaults to stdout)",
         )
-        self.parser.add_argument("--force", action="store_true", help="Allow overriding existing files")
+        self.parser.add_argument("--override", action="store_true", help="Allow overriding existing files")
+        self.parser.add_argument(
+            "--no-isolation",
+            action="store_true",
+            help="Don't isolate the resolution environment",
+        )
         self.parser.add_argument(
             "-f",
             "--format",

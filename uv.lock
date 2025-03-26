@@ -141,7 +141,7 @@ wheels = [
 
 [[package]]
 name = "pipzap"
-version = "0.2.2"
+version = "0.2.4"
 source = { editable = "." }
 dependencies = [
     { name = "loguru" },

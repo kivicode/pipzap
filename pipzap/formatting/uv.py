@@ -1,28 +1,81 @@
-from pipzap.core.dependencies import ProjectDependencies
+from copy import deepcopy
+from typing import List, Optional, Set
+
+import tomlkit
+from packaging.requirements import Requirement
+
+from pipzap.core.dependencies import DepKeyT
 from pipzap.formatting.base import DependenciesFormatter
-from pipzap.formatting.poetry import PoetryFormatter
-from pipzap.parsing.workspace import Workspace
 
 
 class UVFormatter(DependenciesFormatter):
-    """Builds a uv-style pyproject.toml structure from parsed dependencies.
-
-    Operates on top of the :py:class:`~pipzap.formatting.poetry:PoetryFormatter`,
-    converting its output with `uvx migrate-to-uv`.
-    """
-
-    def __init__(self, dependencies: ProjectDependencies):
-        super().__init__(dependencies)
-        self._poetry_formatter = PoetryFormatter(dependencies)
+    """Formats pruned dependencies back into a uv-style pyproject.toml by modifying the original structure."""
 
     def format(self) -> str:
-        poetry_ir = self._poetry_formatter.format()
+        """Converts pruned dependencies back into a uv-style pyproject.toml string.
 
-        with Workspace(None) as workspace:
-            pyproject = workspace.base / "pyproject.toml"
-            pyproject.write_text(poetry_ir)
+        Modifies the original pyproject.toml to retain only the pruned direct dependencies.
 
-            workspace.run(["uvx", "migrate-to-uv"], "migration")
-            uv_content = pyproject.read_text()
+        Returns:
+            A string representation of the updated pyproject.toml.
+        """
+        assert self.project, "[internal assertion] Source project must be provided"
 
-        return uv_content
+        pyproject = deepcopy(self.project)
+        project = pyproject.get("project", {})
+
+        keep_keys = {dep.key for dep in self.deps}
+
+        # [project.dependencies]
+        project_deps = project.get("dependencies")
+        if project_deps:
+            project["dependencies"] = self._filter_section(project_deps, keep_keys)
+
+        # [project.optional-dependencies]
+        optional_deps = project.get("optional-dependencies", [])
+        for extra in optional_deps:
+            optional_deps[extra] = self._filter_section(optional_deps[extra], keep_keys, extra=extra)
+
+        # [dependency-groups]
+        groups_deps = pyproject.get("dependency-groups", [])
+        for group in groups_deps:
+            groups_deps[group] = self._filter_section(groups_deps[group], keep_keys, group)
+
+        pyproject = tomlkit.loads(tomlkit.dumps(pyproject))
+        pyproject["tool"].pop("poetry", None)
+        return tomlkit.dumps(pyproject)
+
+    def _filter_section(
+        self,
+        section: List[str],
+        keep_keys: Set[DepKeyT],
+        group: Optional[str] = None,
+        extra: Optional[str] = None,
+    ) -> List[str]:
+        """Filters a section of dependencies to keep only those in keep_keys.
+
+        Args:
+            section: List of requirement strings from the original pyproject.toml.
+            keep_keys: Set of (name, groups, extras) tuples to retain.
+            group: The group context, if applicable.
+            extra: The extra context, if applicable.
+
+        Returns:
+            Filtered list of requirement strings.
+        """
+        filtered = []
+        group_set = frozenset([group]) if group else frozenset()
+        extra_set = frozenset([extra]) if extra else frozenset()
+
+        for req_str in section:
+            if isinstance(req_str, dict) and "include-group" in req_str:
+                filtered.append(req_str)
+                continue
+
+            name = Requirement(req_str).name.lower()
+            key = (name, group_set, extra_set)
+
+            if key in keep_keys:
+                filtered.append(req_str)
+
+        return tomlkit.array(filtered).multiline(True)
