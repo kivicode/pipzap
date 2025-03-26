@@ -2,7 +2,6 @@ from copy import deepcopy
 from typing import Dict, Optional
 
 import tomlkit
-import tomlkit.items
 
 from pipzap.core.dependencies import ProjectDependencies
 from pipzap.core.source_format import SourceFormat
