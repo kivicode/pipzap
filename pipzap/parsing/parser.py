@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Optional, Set
 
 from loguru import logger
 from packaging.requirements import Requirement
@@ -17,11 +17,16 @@ class DependenciesParser:
 
         Args:
             workspace: The workspace containing the project files.
+            source_format: The format of the original dependencies definition.
 
         Returns:
             A ProjectDependencies instance with all dependencies and the extract information,
             such as groups, extras, etc.
         """
+        original_project: Optional[str] = None
+        if workspace.backup.suffix == ".toml":
+            original_project = read_toml(workspace.backup)
+
         project = read_toml(workspace.base / "pyproject.toml")
         lock = read_toml(workspace.base / "uv.lock")
 
@@ -31,7 +36,7 @@ class DependenciesParser:
         cls._set_pinned_version(lock, direct)
 
         py_version = project["project"]["requires-python"]
-        parsed = ProjectDependencies(direct, graph, py_version, project)
+        parsed = ProjectDependencies(direct, graph, source_format, py_version, original_project, project)
         logger.debug(f"Parsed dependencies:\n{str(parsed)}")
         return parsed
 
@@ -94,17 +99,14 @@ class DependenciesParser:
         req = Requirement(req_str)
         name = req.name
         source = sources.get(name, {})
-        index = indexes.get(source.get("index")) if "index" in source else None
-        marker = str(req.marker) if req.marker else None
-        required_extras = set(req.extras) if req.extras else frozenset()
 
         return Dependency(
             name=name,
             groups=groups,
             extras=extras,
-            marker=marker,
-            index=index,
-            required_extras=required_extras,
+            marker=str(req.marker) if req.marker else None,
+            index=indexes.get(source.get("index")) if "index" in source else None,
+            required_extras=set(req.extras) if req.extras else frozenset(),
         )
 
     @staticmethod

@@ -24,8 +24,8 @@ def get_package_names(lock_data: dict) -> Set[str]:
 def test_dependency_pruning(input_file):
     with Workspace(input_file) as workspace:
         # FIXME: Specify per-test python versions?
-        ProjectConverter("3.10").convert_to_uv(workspace)
-        parsed = DependenciesParser.parse(workspace)
+        source_format = ProjectConverter("3.10").convert_to_uv(workspace)
+        parsed = DependenciesParser.parse(workspace, source_format)
         pruned = DependencyPruner.prune(parsed)
         full_lock = read_toml(workspace.base / "uv.lock")
 

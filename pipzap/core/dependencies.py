@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict, FrozenSet, List, Optional, Set, Tuple
 
+from pipzap.core.source_format import SourceFormat
 from pipzap.utils.pretty_string import format_project_dependencies
 
 DepKeyT = Tuple[str, FrozenSet[str], FrozenSet[str]]
@@ -41,9 +42,22 @@ class ProjectDependencies:
     """Represents the project's dependencies with context."""
 
     direct: List[Dependency]
+    """Dependencies directly mentioned in the source requirements.txt or pyproject.toml."""
+
     graph: Dict[DepKeyT, List[DepKeyT]]
+    """Graph of dependency relations."""
+
+    source_format: SourceFormat
+    """The format of the original dependencies definition."""
+
     py_version: Optional[str] = None
+    """Python version or constraint, if available."""
+
+    poetry_pyproject_source: Optional[dict] = None
+    """The original poetry pyproject.toml parsed, if applicable."""
+
     uv_pyproject_source: Optional[dict] = None
+    """Normalized always-uv pyproject.toml version."""
 
     def __str__(self) -> str:
         return format_project_dependencies(self)
