@@ -28,7 +28,7 @@ class DependencyPruner:
         redundant = cls._find_redundant_deps(resolved_deps)
         pruned = cls._filter_redundant(resolved_deps.direct, redundant)
 
-        logger.info(f"Redundant: {', '.join(name for name, *_ in redundant)}")
+        logger.info(f"Redundant: {', '.join(name for name, *_ in redundant or [('<empty>', '')])}")
         logger.info(
             f"Pruned {len(resolved_deps.direct) - len(pruned)} "  #
             f"redundant dependencies, kept {len(pruned)}"

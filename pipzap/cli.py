@@ -40,15 +40,15 @@ class PipZapCLI:
             args.format = SourceFormat(args.format)
 
         try:
-            if args.output and args.output.is_file() and not args.force:
+            if args.output and args.output.is_file() and not args.override:
                 raise ValueError(
                     f"Output file {args.output} already exists. "  #
-                    "Specify --force to allow overriding"
+                    "Specify --override to allow overriding"
                 )
 
             logger.success(f"Starting processing {args.file}")
 
-            with Workspace(args.file) as workspace:
+            with Workspace(args.file, args.no_isolation, extra_backup_filenames=["uv.lock"]) as workspace:
                 logger.debug(f"Source data:\n{workspace.path.read_text()}")
 
                 source_format = ProjectConverter(args.python_version).convert_to_uv(workspace)
@@ -84,7 +84,12 @@ class PipZapCLI:
             default=None,
             help="Output file (defaults to stdout)",
         )
-        self.parser.add_argument("--force", action="store_true", help="Allow overriding existing files")
+        self.parser.add_argument("--override", action="store_true", help="Allow overriding existing files")
+        self.parser.add_argument(
+            "--no-isolation",
+            action="store_true",
+            help="Don't isolate the resolution environment",
+        )
         self.parser.add_argument(
             "-f",
             "--format",
