@@ -22,7 +22,7 @@ class Workspace:
     def __init__(
         self,
         source_path: Union[Path, str, None],
-        no_isolation: bool = True,
+        no_isolation: bool = False,
         restore_backup: bool = True,
         extra_backup_filenames: Optional[List[str]] = None,
     ):
@@ -45,9 +45,12 @@ class Workspace:
             logger.warning("Extra backup files requested, but no source path is provided. Ignoring.")
             extra_backup_filenames = []
 
-        extra_backup_files = [self.source_path.parent / fname for fname in extra_backup_filenames or []]
+        extra_backup_files = []
+        if self.source_path:
+            extra_backup_files = [self.source_path.parent / fname for fname in extra_backup_filenames or []]
+
         self._extra_backup_source = [file for file in extra_backup_files if file.is_file()]
-        self._extra_backup_target = []
+        self._extra_backup_target: List[Path] = []
 
         if self.source_path and self._no_isolation and not self._restore_backup:
             raise ResourceWarning(
@@ -108,7 +111,7 @@ class Workspace:
         self._path = self._base / self.source_path.name
         self._backup = self._base / self._format_backup(self.source_path)
 
-        logger.debug(f"Backed up (copied) '{self.source_path}' -> '{self._path}'")
+        logger.debug(f"Backing up (copying) '{self.source_path}' -> '{self._path}'")
         shutil.copyfile(self.source_path, self._backup)
 
         self._extra_backup_target = []
@@ -116,11 +119,12 @@ class Workspace:
             target = self._base / self._format_backup(extra_backup)
             self._extra_backup_target.append(target)
 
-            logger.debug(f"Backed up (moved) '{extra_backup}' -> '{target}'")
-            shutil.move(extra_backup, target)
+            logger.debug(f"Backing up (moving) '{extra_backup}' -> '{target}'")
+            shutil.move(str(extra_backup.absolute()), target)
 
         if not self._no_isolation:
             # same path otherwise
+            logger.debug(f"Backing up (copying) '{self.source_path}' -> '{self._path}'")
             shutil.copyfile(self.source_path, self._path)
 
         return self
@@ -130,9 +134,6 @@ class Workspace:
 
         Removes the temporary directory unless in debug mode.
         """
-        if self.base:
-            if not is_debug():
-                shutil.rmtree(self.base)
 
         if self._restore_backup:
             restore_from = [self._backup] + self._extra_backup_target
@@ -142,8 +143,12 @@ class Workspace:
                 if not source or not target or source == target:
                     continue
 
-                logger.debug(f"Restored backup '{source}' as '{target}'")
-                shutil.move(source, target)
+                logger.debug(f"Restoring backup '{source}' as '{target}'")
+                shutil.move(str(source.absolute()), target)
+
+        if self.base and not self._no_isolation and not is_debug():
+            logger.debug(f"Removing base: {self.base}")
+            shutil.rmtree(self.base)
 
         logger.debug(f"Exited workspace: {self.base}")
 
