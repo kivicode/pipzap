@@ -131,6 +131,9 @@ class PoetryFormatter(DependenciesFormatter):
         Returns:
             True if the dependency should be retained, False otherwise.
         """
+        if name == "python":
+            return True
+
         return any(
             dep.name.lower() == name.lower() and (group in dep.groups if group else not dep.groups)
             for dep in self.deps
