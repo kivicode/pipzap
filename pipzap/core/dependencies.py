@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from typing import Dict, FrozenSet, List, Optional, Set, Tuple
+from dataclasses import dataclass, field
+from typing import Dict, FrozenSet, List, Optional, Tuple
 
 from pipzap.core.source_format import SourceFormat
 from pipzap.utils.pretty_string import format_project_dependencies
@@ -14,10 +14,10 @@ class Dependency:
     name: str
     """Package name (e.g., "torch")."""
 
-    groups: Set[str] = frozenset()
+    groups: FrozenSet[str] = field(default_factory=frozenset)
     """Group names the dependency belongs to."""
 
-    extras: Set[str] = frozenset()
+    extras: FrozenSet[str] = field(default_factory=frozenset)
     """Names of extras the dependency belongs to."""
 
     marker: Optional[str] = None
@@ -26,7 +26,7 @@ class Dependency:
     index: Optional[str] = None
     """Name of the custom index to use for the dependency."""
 
-    required_extras: Set[str] = frozenset()
+    required_extras: FrozenSet[str] = field(default_factory=frozenset)
     """Extras required by this dependency."""
 
     pinned_version: Optional[str] = None

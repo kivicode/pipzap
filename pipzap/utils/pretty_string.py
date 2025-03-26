@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Dict, List, Optional
 
 if TYPE_CHECKING:
-    from pipzap.core.dependencies import Dependency, ProjectDependencies
+    from pipzap.core.dependencies import Dependency, DepKeyT, ProjectDependencies
 
 
 def format_project_dependencies(deps: "ProjectDependencies") -> str:
@@ -75,7 +75,7 @@ def _get_dep_attributes(dep: "Dependency") -> str:
     return f" [{', '.join(attributes)}]"
 
 
-def _get_graph_lines(graph: Dict[(str, List[str])]) -> List[str]:
+def _get_graph_lines(graph: Dict["DepKeyT", List["DepKeyT"]]) -> List[str]:
     if not graph:
         return [f"{INDENT}(none)"]
 

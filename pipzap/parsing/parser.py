@@ -24,7 +24,7 @@ class DependenciesParser:
             A ProjectDependencies instance with all dependencies and the extract information,
             such as groups, extras, etc.
         """
-        original_project: Optional[str] = None
+        original_project: Optional[dict] = None
         if workspace.backup.suffix == ".toml":
             original_project = read_toml(workspace.backup)
 
@@ -103,11 +103,11 @@ class DependenciesParser:
 
         return Dependency(
             name=name,
-            groups=groups,
-            extras=extras,
+            groups=frozenset(groups),
+            extras=frozenset(extras),
             marker=str(req.marker) if req.marker else None,
             index=indexes.get(source.get("index")) if "index" in source else None,
-            required_extras=set(req.extras) if req.extras else frozenset(),
+            required_extras=frozenset(req.extras or []),
         )
 
     @staticmethod
@@ -124,19 +124,19 @@ class DependenciesParser:
                     continue
 
                 key = (name, groups, extras)
-                deps = [
+                package_deps: List[DepKeyT] = [
                     (dep_name["name"].lower(), frozenset(), frozenset())
                     for dep_name in package.get("dependencies", [])
                 ]
 
-                for i, (dep_name, _, _) in enumerate(deps):
+                for i, (dep_name, _, _) in enumerate(package_deps):
                     if (dep_name, frozenset(), frozenset()) not in direct_map:
                         continue
 
                     direct_dep = direct_map[(dep_name, frozenset(), frozenset())]
-                    deps[i] = (dep_name, frozenset(direct_dep.groups), frozenset(direct_dep.extras))
+                    package_deps[i] = (dep_name, frozenset(direct_dep.groups), frozenset(direct_dep.extras))
 
-                graph[key] = deps
+                graph[key] = package_deps
 
         for package in lock.get("package", []):
             name = package["name"].lower()
