@@ -7,15 +7,15 @@ from loguru import logger
 
 from pipzap import __uv_version__ as uv_version
 from pipzap import __version__ as zap_version
-from pipzap.core import DependencyPruner, SourceType
+from pipzap.core import DependencyPruner, SourceFormat
 from pipzap.formatting import PoetryFormatter, RequirementsTXTFormatter, UVFormatter
 from pipzap.formatting.base import DependenciesFormatter
 from pipzap.parsing import DependenciesParser, ProjectConverter, Workspace
 
-KNOWN_FORMATTERS: Dict[SourceType, Type[DependenciesFormatter]] = {
-    SourceType.POETRY: PoetryFormatter,
-    SourceType.REQS: RequirementsTXTFormatter,
-    SourceType.UV: UVFormatter,
+KNOWN_FORMATTERS: Dict[SourceFormat, Type[DependenciesFormatter]] = {
+    SourceFormat.POETRY: PoetryFormatter,
+    SourceFormat.REQS: RequirementsTXTFormatter,
+    SourceFormat.UV: UVFormatter,
 }
 
 
@@ -37,7 +37,7 @@ class PipZapCLI:
         logger.debug(f"Starting PipZap v{zap_version} (uv v{uv_version})")
 
         if args.format is not None:
-            args.format = SourceType(args.format)
+            args.format = SourceFormat(args.format)
 
         try:
             if args.output and args.output.is_file() and not args.force:

@@ -5,7 +5,7 @@ from pipzap.exceptions import ParseError
 from pipzap.utils.io import read_toml
 
 
-class SourceType(Enum):
+class SourceFormat(Enum):
     """Enumeration of known build systems."""
 
     REQS = "reqs"
@@ -13,7 +13,7 @@ class SourceType(Enum):
     UV = "uv"
 
     @classmethod
-    def detect_format(cls, file_path: Path) -> "SourceType":
+    def detect_format(cls, file_path: Path) -> "SourceFormat":
         """Attempts to guess the build system given a source file path."""
 
         if "requirements" in file_path.name and ".txt" in file_path.suffixes:
