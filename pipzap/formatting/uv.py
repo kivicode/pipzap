@@ -1,9 +1,10 @@
 from copy import deepcopy
-from typing import List, Optional, Set, Tuple
+from typing import List, Optional, Set
 
 import tomlkit
 from packaging.requirements import Requirement
 
+from pipzap.core.dependencies import DepKeyT
 from pipzap.formatting.base import DependenciesFormatter
 
 
@@ -45,7 +46,7 @@ class UVFormatter(DependenciesFormatter):
     def _filter_section(
         self,
         section: List[str],
-        keep_keys: Set[Tuple[str, Set[str], Set[str]]],
+        keep_keys: Set[DepKeyT],
         group: Optional[str] = None,
         extra: Optional[str] = None,
     ) -> List[str]:

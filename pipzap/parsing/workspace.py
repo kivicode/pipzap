@@ -28,6 +28,7 @@ class Workspace:
         self.source_path = Path(source_path) if source_path else None
         self._base: Optional[Path] = None
         self._path: Optional[Path] = None
+        self._backup: Optional[Path] = None
 
     @property
     def base(self) -> Path:
@@ -40,6 +41,12 @@ class Workspace:
         if not self._path:
             raise RuntimeError("Unable to get Workspace.path: context not entered.")
         return self._path
+
+    @property
+    def backup(self) -> Path:
+        if not self._backup:
+            raise RuntimeError("Unable to get Workspace.backup: context not entered.")
+        return self._backup
 
     def __enter__(self) -> Self:
         """Enters the context, setting up the temporary workspace.
@@ -64,11 +71,14 @@ class Workspace:
             self._base.mkdir(parents=True)
 
         logger.debug(f"Entered workspace: {self._base} from ({self.source_path})")
-        self._path = self._base
 
         if self.source_path:
-            self._path /= self.source_path.name
+            self._path = self._base / self.source_path.name
+            self._backup = self._base / f"__pipzap-{self.source_path.stem}.backup.{self.source_path.suffix}"
+
             shutil.copyfile(self.source_path, self._path)
+            shutil.copyfile(self.source_path, self._backup)
+
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):

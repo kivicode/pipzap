@@ -72,7 +72,7 @@ class ProjectConverter:
             )
 
         workspace.run(
-            ["uvx", "migrate-to-uv"],
+            ["uvx", "migrate-to-uv", "--package-manager", "pip"],
             "conversion",
             log_filter=lambda line: "No `requires-python` value found in the workspace." not in line,
         )
@@ -92,7 +92,10 @@ class ProjectConverter:
 
         Relies on the `uvx migrate-to-uv` tool.
         """
-        workspace.run(["uvx", "migrate-to-uv", "--keep-current-data", "--skip-lock"], "conversion")
+        workspace.run(
+            ["uvx", "migrate-to-uv", "--keep-current-data", "--skip-lock", "--package-manager", "poetry"],
+            "conversion",
+        )
 
         self._try_inject_python_version(workspace)
         workspace.run(["uv", "lock"], "resolution")

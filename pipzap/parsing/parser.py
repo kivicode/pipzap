@@ -4,6 +4,7 @@ from loguru import logger
 from packaging.requirements import Requirement
 
 from pipzap.core.dependencies import Dependency, DepKeyT, ProjectDependencies
+from pipzap.core.source_format import SourceFormat
 from pipzap.parsing.workspace import Workspace
 from pipzap.utils.io import read_toml
 
@@ -12,7 +13,7 @@ class DependenciesParser:
     """Parser for uv project dependencies from `pyproject.toml` and `uv.lock`."""
 
     @classmethod
-    def parse(cls, workspace: Workspace) -> ProjectDependencies:
+    def parse(cls, workspace: Workspace, source_format: SourceFormat) -> ProjectDependencies:
         """Parse project dependencies from `pyproject.toml` and `uv.lock` into an internal runtime representation.
 
         Args:
