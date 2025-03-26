@@ -30,6 +30,7 @@ class PoetryFormatter(DependenciesFormatter):
         Returns:
             A string representation of the pyproject.toml file.
         """
+        assert self.source_project, "[internal assertion] Source project must be provided"
 
         pyproject = deepcopy(self.source_project)
         kept_names = {dep.name.lower() for dep in self.deps}

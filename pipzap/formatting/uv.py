@@ -19,6 +19,8 @@ class UVFormatter(DependenciesFormatter):
         Returns:
             A string representation of the updated pyproject.toml.
         """
+        assert self.project, "[internal assertion] Source project must be provided"
+
         pyproject = deepcopy(self.project)
         project = pyproject.get("project", {})
 
