@@ -35,16 +35,12 @@ class UVFormatter(DependenciesFormatter):
         # [project.optional-dependencies]
         optional_deps = project.get("optional-dependencies", [])
         for extra in optional_deps:
-            optional_deps[extra] = self._filter_section(
-                optional_deps[extra], keep_keys, extra=extra
-            )
+            optional_deps[extra] = self._filter_section(optional_deps[extra], keep_keys, extra=extra)
 
         # [dependency-groups]
         groups_deps = pyproject.get("dependency-groups", [])
         for group in groups_deps:
-            groups_deps[group] = self._filter_section(
-                groups_deps[group], keep_keys, group
-            )
+            groups_deps[group] = self._filter_section(groups_deps[group], keep_keys, group)
 
         pyproject = tomlkit.loads(tomlkit.dumps(pyproject))
         pyproject["tool"].pop("poetry", None)
