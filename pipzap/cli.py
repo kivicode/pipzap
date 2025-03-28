@@ -11,6 +11,7 @@ from pipzap.core import DependencyPruner, SourceFormat
 from pipzap.formatting import PoetryFormatter, RequirementsTXTFormatter, UVFormatter
 from pipzap.formatting.base import DependenciesFormatter
 from pipzap.parsing import DependenciesParser, ProjectConverter, Workspace
+from pipzap.parsing.workspace import BackupPath
 
 KNOWN_FORMATTERS: Dict[SourceFormat, Type[DependenciesFormatter]] = {
     SourceFormat.POETRY: PoetryFormatter,
@@ -52,7 +53,13 @@ class PipZapCLI:
 
             logger.success(f"Starting processing {args.file}")
 
-            with Workspace(args.file, args.no_isolation, extra_backup_filenames=["uv.lock"]) as workspace:
+            to_backup = [
+                BackupPath("uv.lock", keep=False),
+                BackupPath("requirements.txt", keep=True),
+                BackupPath("pyproject.toml", keep=True),
+            ]
+
+            with Workspace(args.file, args.no_isolation, extra_backup=to_backup) as workspace:
                 logger.debug(f"Source data:\n{workspace.path.read_text()}")
 
                 source_format = ProjectConverter(args.python_version).convert_to_uv(workspace)
