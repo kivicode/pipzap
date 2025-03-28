@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Dict, List, Optional, Tuple, cast
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 from urllib.parse import urlparse
 
 import tomlkit
@@ -101,7 +101,11 @@ class UVToPoetryConverter:
 
         return None
 
-    def _convert_dependency(self, req_str: str, sources: Dict[str, Dict[str, dict]]) -> Tuple[str, str]:
+    def _convert_dependency(
+        self,
+        req_str: str,
+        sources: Dict[str, Dict[str, dict]],
+    ) -> Tuple[str, Union[str, Dict[str, Any]]]:
         """Converts a PEP 508 requirement string to a Poetry dependency specification.
 
         Args:
@@ -113,9 +117,8 @@ class UVToPoetryConverter:
         """
         req = Requirement(req_str)
         name = req.name
-        dep = {}
+        dep: Dict[str, Union[str, List[str]]] = {}
 
-        # Handle URL or versioned dependencies
         if req.url:
             self._handle_url_dependency(req, dep)
         else:
@@ -123,13 +126,12 @@ class UVToPoetryConverter:
             if source_dep:
                 return name, source_dep
 
-        # Handle common attributes
         if req.marker:
             dep["markers"] = str(req.marker).replace('"', "'")
+
         if req.extras:
             dep["extras"] = list(req.extras)
 
-        # Return default or constructed dependency
         if not dep:
             return name, "*"
 

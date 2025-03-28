@@ -18,6 +18,9 @@ class PoetryFormatter(DependenciesFormatter):
         """
 
         if self.dependencies.source_format != SourceFormat.POETRY:
+            assert self.dependencies.uv_pyproject_source, (
+                "[internal assertion] No parsed uv pyproject provided."
+            )
             pyproject = UVToPoetryConverter(self.dependencies.uv_pyproject_source).convert()
         else:
             assert self.dependencies.poetry_pyproject_source, (

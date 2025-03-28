@@ -42,8 +42,7 @@ class UVFormatter(DependenciesFormatter):
         for group in groups_deps:
             groups_deps[group] = self._filter_section(groups_deps[group], keep_keys, group)
 
-        pyproject = tomlkit.loads(tomlkit.dumps(pyproject))
-        pyproject["tool"].pop("poetry", None)
+        pyproject.get("tool", {}).pop("poetry", None)
         return tomlkit.dumps(pyproject)
 
     def _filter_section(
