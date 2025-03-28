@@ -15,9 +15,14 @@ REQUIREMENTS_DIR = DATA_DIR / "requirements"
 
 REQUIREMENTS_ENTRIES = set(REQUIREMENTS_DIR.rglob("*.txt")) - set(REQUIREMENTS_DIR.rglob("failing/**/*.txt"))
 
+IGNORED_DEPENDENCIES = {
+    ProjectConverter.DUMMY_PROJECT_NAME,
+    "typing-inspection",  # Is sometimes included by uv depending on its internal resolution decisions
+}
+
 
 def get_package_names(lock_data: dict) -> Set[str]:
-    return {p["name"] for p in lock_data["package"]} - {ProjectConverter.DUMMY_PROJECT_NAME}
+    return {p["name"] for p in lock_data["package"]} - IGNORED_DEPENDENCIES
 
 
 @pytest.mark.parametrize("input_file", REQUIREMENTS_ENTRIES)
