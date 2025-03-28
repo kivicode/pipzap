@@ -18,6 +18,7 @@ REQUIREMENTS_ENTRIES = set(REQUIREMENTS_DIR.rglob("*.txt")) - set(REQUIREMENTS_D
 IGNORED_DEPENDENCIES = {
     ProjectConverter.DUMMY_PROJECT_NAME,
     "typing-inspection",  # Is sometimes included by uv depending on its internal resolution decisions
+    # TODO: Re-visit
 }
 
 
