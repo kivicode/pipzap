@@ -15,7 +15,7 @@ class RequirementsTXTFormatter(DependenciesFormatter):
             A string representing the contents of a requirements.txt file.
         """
         requirements_txt = self.workspace.run(
-            ["uv", "export", "--no-hashes", "--locked"],
+            ["uv", "export", "--no-hashes", "--format", "requirements-txt", "--locked"],
             "pip export",
         )
         lines = [
