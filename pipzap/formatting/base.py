@@ -17,9 +17,7 @@ class DependenciesFormatter(ABC):
             dependencies: Parsed project dependencies to format.
         """
         self.workspace = workspace
-        self.python_version = dependencies.py_version
-        self.project = dependencies.uv_pyproject_source
-        self.deps = dependencies.direct
+        self.dependencies = dependencies
 
     @abstractmethod
     def format(self) -> str:

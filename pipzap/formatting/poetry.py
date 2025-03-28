@@ -136,5 +136,5 @@ class PoetryFormatter(DependenciesFormatter):
 
         return any(
             dep.name.lower() == name.lower() and (group in dep.groups if group else not dep.groups)
-            for dep in self.deps
+            for dep in self.dependencies.direct
         )

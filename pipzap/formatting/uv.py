@@ -19,12 +19,13 @@ class UVFormatter(DependenciesFormatter):
         Returns:
             A string representation of the updated pyproject.toml.
         """
-        assert self.project, "[internal assertion] Source project must be provided"
+        pyproject = self.dependencies.uv_pyproject_source
+        assert pyproject, "[internal assertion] Source project must be provided"
 
-        pyproject = deepcopy(self.project)
+        pyproject = deepcopy(pyproject)
         project = pyproject.get("project", {})
 
-        keep_keys = {dep.key for dep in self.deps}
+        keep_keys = {dep.key for dep in self.dependencies.direct}
 
         # [project.dependencies]
         project_deps = project.get("dependencies")
@@ -34,12 +35,16 @@ class UVFormatter(DependenciesFormatter):
         # [project.optional-dependencies]
         optional_deps = project.get("optional-dependencies", [])
         for extra in optional_deps:
-            optional_deps[extra] = self._filter_section(optional_deps[extra], keep_keys, extra=extra)
+            optional_deps[extra] = self._filter_section(
+                optional_deps[extra], keep_keys, extra=extra
+            )
 
         # [dependency-groups]
         groups_deps = pyproject.get("dependency-groups", [])
         for group in groups_deps:
-            groups_deps[group] = self._filter_section(groups_deps[group], keep_keys, group)
+            groups_deps[group] = self._filter_section(
+                groups_deps[group], keep_keys, group
+            )
 
         pyproject = tomlkit.loads(tomlkit.dumps(pyproject))
         pyproject["tool"].pop("poetry", None)
