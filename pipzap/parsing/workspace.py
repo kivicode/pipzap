@@ -2,6 +2,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, List, Optional, Union
 
@@ -10,6 +11,28 @@ from typing_extensions import Self
 
 from pipzap.exceptions import ResolutionError
 from pipzap.utils.debug import is_debug
+
+
+@dataclass
+class BackupPath:
+    fname: str
+    keep: bool
+    original_path: Optional[Path] = None
+
+    _base_path: Optional[Path] = field(init=False, default=None)
+
+    def with_path(self, base_path: Path, fname: Optional[str] = None) -> Self:
+        self._base_path = base_path
+        if fname:
+            self.fname = fname
+        return self
+
+    @property
+    def path(self) -> Path:
+        if self._base_path is None:
+            raise RuntimeError("Attempted to get path of a backup file prior to initialization.")
+
+        return self._base_path / self.fname
 
 
 class Workspace:
@@ -24,7 +47,7 @@ class Workspace:
         source_path: Union[Path, str, None],
         no_isolation: bool = False,
         restore_backup: bool = True,
-        extra_backup_filenames: Optional[List[str]] = None,
+        extra_backup: Optional[List[BackupPath]] = None,
     ):
         """
         Args:
@@ -32,25 +55,25 @@ class Workspace:
                          or None if no source file is needed.
             no_isolation: Whether to disable the creation of a temp directory to operate in.
             restore_backup: Whether to restore the backup file after the exit.
-            extra_backup_filenames: Additional files to silently backup from the same dir as source_path.
+            extra_backup: Additional files to silently backup from the same dir as source_path.
         """
         self.source_path = Path(source_path) if source_path else None
         self._restore_backup = restore_backup
         self._no_isolation = no_isolation
         self._base: Optional[Path] = None
         self._path: Optional[Path] = None
-        self._backup: Optional[Path] = None
+        self._backup: Optional[BackupPath] = None
 
-        if extra_backup_filenames and source_path is None:
+        if extra_backup and source_path is None:
             logger.warning("Extra backup files requested, but no source path is provided. Ignoring.")
-            extra_backup_filenames = []
+            extra_backup = []
 
         extra_backup_files = []
         if self.source_path:
-            extra_backup_files = [self.source_path.parent / fname for fname in extra_backup_filenames or []]
+            extra_backup_files = [backup.with_path(self.source_path.parent) for backup in extra_backup or []]
 
-        self._extra_backup_source = [file for file in extra_backup_files if file.is_file()]
-        self._extra_backup_target: List[Path] = []
+        self._extra_backup_source = [file for file in extra_backup_files if file.path.is_file()]
+        self._extra_backup_target: List[BackupPath] = []
 
         if self.source_path and self._no_isolation and not self._restore_backup:
             raise ResourceWarning(
@@ -74,7 +97,7 @@ class Workspace:
     def backup(self) -> Path:
         if not self._backup:
             raise RuntimeError("Unable to get Workspace.backup: context not entered or backup not used.")
-        return self._backup
+        return self._backup.path
 
     def __enter__(self) -> Self:
         """Enters the context, setting up the temporary workspace.
@@ -109,18 +132,31 @@ class Workspace:
             return self
 
         self._path = self._base / self.source_path.name
-        self._backup = self._base / self._format_backup(self.source_path)
 
-        logger.debug(f"Backing up (copying) '{self.source_path}' -> '{self._path}'")
-        shutil.copyfile(self.source_path, self._backup)
+        backup_fname = self._format_backup(self.source_path)
+        self._backup = BackupPath(backup_fname, keep=True, original_path=self.source_path)
+        self._backup.with_path(self._base)
+
+        logger.debug(f"Backing up (copying) '{self.source_path}' -> '{self._backup.path}'")
+        shutil.copyfile(self.source_path, self._backup.path)
 
         self._extra_backup_target = []
         for extra_backup in self._extra_backup_source:
-            target = self._base / self._format_backup(extra_backup)
+            target_fname = self._format_backup(extra_backup.path)
+            target = BackupPath(target_fname, extra_backup.keep, original_path=extra_backup.path)
+            target.with_path(self._base)
             self._extra_backup_target.append(target)
 
-            logger.debug(f"Backing up (moving) '{extra_backup}' -> '{target}'")
-            shutil.move(str(extra_backup.absolute()), target)
+            logger.debug(
+                f"Backing up ({'copying' if extra_backup.keep else 'moving'}) "
+                f"'{extra_backup.path}' -> '{target.path}'"
+            )
+            backup_op = shutil.copyfile if extra_backup.keep else shutil.move
+
+            if extra_backup.keep and extra_backup.path == target.path:
+                continue
+
+            backup_op(str(extra_backup.path.absolute()), target.path)
 
         if not self._no_isolation:
             # same path otherwise
@@ -136,15 +172,21 @@ class Workspace:
         """
 
         if self._restore_backup:
-            restore_from = [self._backup] + self._extra_backup_target
-            restore_to = [self.source_path] + self._extra_backup_source
+            to_restore = []
+            if self._backup:
+                to_restore.append(self._backup)
 
-            for source, target in zip(restore_from, restore_to):
-                if not source or not target or source == target:
+            to_restore.extend(self._extra_backup_target)
+
+            for backup in to_restore:
+                if not backup.original_path or not backup.path.exists():
                     continue
 
-                logger.debug(f"Restoring backup '{source}' as '{target}'")
-                shutil.move(str(source.absolute()), target)
+                if backup.path == backup.original_path:
+                    continue
+
+                logger.debug(f"Restoring backup '{backup.path}' as '{backup.original_path}'")
+                shutil.move(str(backup.path.absolute()), backup.original_path)
 
         if self.base and not self._no_isolation and not is_debug():
             logger.debug(f"Removing base: {self.base}")
