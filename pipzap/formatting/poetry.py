@@ -1,38 +1,34 @@
-from copy import deepcopy
 from typing import Dict, Optional
 
 import tomlkit
 
-from pipzap.core.dependencies import ProjectDependencies
 from pipzap.core.source_format import SourceFormat
+from pipzap.formatting._uv_to_poetry import UVToPoetryConverter
 from pipzap.formatting.base import DependenciesFormatter
-from pipzap.parsing.workspace import Workspace
 
 
 class PoetryFormatter(DependenciesFormatter):
     """Formats pruned dependencies into a Poetry-style pyproject.toml."""
 
-    def __init__(self, workspace: Workspace, dependencies: ProjectDependencies):
-        if dependencies.source_format != SourceFormat.POETRY:
-            raise NotImplementedError(
-                "The 'poetry' output format is only available for "
-                "an originally poetry-formatted pyproject.toml. "
-                f"Source format: {dependencies.source_format.name}"
-            )
-
-        super().__init__(workspace, dependencies)
-        self.source_project = dependencies.poetry_pyproject_source
-
     def format(self) -> str:
-        """Generate or update the pyproject.toml string.
+        """Generates or updates the pyproject.toml to use the poetry format.
 
         Returns:
             A string representation of the pyproject.toml file.
         """
-        assert self.source_project, "[internal assertion] Source project must be provided"
 
-        pyproject = deepcopy(self.source_project)
-        kept_names = {dep.name.lower() for dep in self.deps}
+        if self.dependencies.source_format != SourceFormat.POETRY:
+            pyproject = UVToPoetryConverter(self.dependencies.uv_pyproject_source).convert()
+        else:
+            assert self.dependencies.poetry_pyproject_source, (
+                "[internal assertion] Source project must be provided for poetry-to-poetry export."
+            )
+
+        pyproject = self._filter_pyproject(pyproject)
+        return tomlkit.dumps(pyproject)
+
+    def _filter_pyproject(self, pyproject: dict) -> dict:
+        kept_names = {dep.name.lower() for dep in self.dependencies.direct}
 
         self._remove_irrelevant_sections(pyproject)
         poetry = pyproject.get("tool", {}).get("poetry", {})
@@ -42,7 +38,7 @@ class PoetryFormatter(DependenciesFormatter):
         self._filter_extras(poetry, kept_names)
         self._filter_sources(poetry)
 
-        return tomlkit.dumps(pyproject)
+        return pyproject
 
     def _remove_irrelevant_sections(self, pyproject: dict) -> None:
         """Remove sections not needed for Poetry from pyproject.toml.
