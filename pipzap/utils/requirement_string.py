@@ -8,7 +8,7 @@ def parse_requirement_string(requirement_string: str) -> Requirement:
     wrapping the exceptions.
 
     Args:
-        requirement_string: _description_
+        requirement_string: PEP 508 requirement string to parse. May include markers.
 
     Raises:
         ParsingError: If a malformed (or otherwise invalid) requirement is provided.
