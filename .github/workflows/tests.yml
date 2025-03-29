@@ -51,9 +51,10 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "Update coverage badge"
+          commit_options: "--no-verify"
           file_pattern: "badges/coverage.svg"
-          branch: ${{ github.ref_name }} 
+          branch: ${{ github.head_ref }}
           skip_dirty_check: false 
-          skip_fetch: false  
+          skip_fetch: false 
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
