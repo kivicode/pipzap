@@ -13,7 +13,7 @@ def dummy_pyproject_dict() -> dict:
         "project": {
             "name": "test-project",
             "version": "0.1.0",
-            "dependencies": ["requests>=2.28.1"],
+            "dependencies": ["requests>=2.28.1", "flask==2.0.1"],
             "requires-python": "~=3.8",
         },
         "tool": {"uv": {}},
