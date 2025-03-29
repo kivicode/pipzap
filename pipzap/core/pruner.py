@@ -45,9 +45,16 @@ class DependencyPruner:
                 if other_dep is dep:
                     continue
 
-                if cls._is_in_transitive(other_dep.key, dep.key, dependencies.graph):
-                    redundant.add(dep.key)
-                    break
+                # If other_dep can reach dep...
+                if not cls._is_in_transitive(other_dep.key, dep.key, dependencies.graph):
+                    continue
+
+                # ...but if dep can also reach other_dep, it's a cycle; do not mark as redundant.
+                if cls._is_in_transitive(dep.key, other_dep.key, dependencies.graph):
+                    continue
+
+                redundant.add(dep.key)
+                break
 
         return redundant
 
