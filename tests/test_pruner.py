@@ -14,7 +14,7 @@ from pipzap.parsing.workspace import Workspace
 def create_project_deps(direct_names: list, graph: dict) -> ProjectDependencies:
     """Helper to create ProjectDependencies for pruning tests."""
 
-    def _make_dep(key_or_name: Union[DepKeyT, str]) -> Dependency:
+    def _make_dep(key_or_name: Union[DepKeyT, str]) -> DepKeyT:
         return Dependency(name=key_or_name).key if isinstance(key_or_name, str) else key_or_name
 
     return ProjectDependencies(

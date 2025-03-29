@@ -1,5 +1,6 @@
 from argparse import Namespace
 from pathlib import Path
+from typing import Optional
 
 import pytest
 
@@ -53,7 +54,7 @@ def dummy_requirements_txt(tmp_path: Path) -> Path:
 def cli_args():
     """Factory fixture for creating CLI argument objects."""
 
-    def _cli_args(file: Path, output: Path = None, **kwargs):
+    def _cli_args(file: Path, output: Optional[Path] = None, **kwargs):
         defaults = {
             "file": file,
             "verbose": False,

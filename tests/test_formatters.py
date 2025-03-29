@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, Set
+from typing import Callable, Dict, Set
 
 import pytest
 import tomlkit
@@ -84,7 +84,7 @@ def test_formatters_output(formatter_cls, expected_content, dummy_workspace, pro
 
 
 @pytest.fixture
-def dummy_poetry_file(make_pyproject: callable) -> Path:
+def dummy_poetry_file(make_pyproject: Callable) -> Path:
     content: Dict = {
         "tool": {"poetry": {"dependencies": {"requests": ">=2.28.1", "flask": "2.0.1"}}},
         "project": {"requires-python": "~=3.8"},
@@ -127,7 +127,7 @@ def test_conversion_pairs(request, source_fixture: str, target_format: str, expe
         if not formatter_cls:
             assert False, f"Test not implemented for {target_format}"
 
-        output = formatter_cls(ws, parsed).format()
+        output = formatter_cls(ws, parsed).format()  # type: ignore [abstract]
 
     for dep in expected_deps:
         assert dep in output, f"Missing dependency {dep} in conversion {source_fixture} -> {target_format}"
