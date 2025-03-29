@@ -1,8 +1,8 @@
 from loguru import logger
-from packaging.requirements import Requirement
 
 from pipzap import __uv_version__, __version__
 from pipzap.formatting.base import DependenciesFormatter
+from pipzap.utils.requirement_string import parse_requirement_string
 
 
 class RequirementsTXTFormatter(DependenciesFormatter):
@@ -39,7 +39,7 @@ class RequirementsTXTFormatter(DependenciesFormatter):
                 continue
 
             try:
-                req = Requirement(line.split(";")[0].split("#")[0].strip())
+                req = parse_requirement_string(line.split(";")[0].split("#")[0].strip())
             except ValueError as err:
                 logger.error(
                     f"Unable to parse '{line}' as a requirement. Skipping. \nError: {err}"

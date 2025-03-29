@@ -1,12 +1,12 @@
 from typing import Any, Dict, List, Optional, Set
 
 from loguru import logger
-from packaging.requirements import Requirement
 
 from pipzap.core.dependencies import Dependency, DepKeyT, ProjectDependencies
 from pipzap.core.source_format import SourceFormat
 from pipzap.parsing.workspace import Workspace
 from pipzap.utils.io import read_toml
+from pipzap.utils.requirement_string import parse_requirement_string
 
 
 class DependenciesParser:
@@ -97,7 +97,7 @@ class DependenciesParser:
         indexes: Dict[str, str],
     ) -> Dependency:
         """Parse a single requirement string into a Dependency object."""
-        req = Requirement(req_str)
+        req = parse_requirement_string(req_str)
         name = req.name
         source = sources.get(name, {})
 

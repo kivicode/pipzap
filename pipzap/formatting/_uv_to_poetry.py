@@ -6,6 +6,7 @@ import tomlkit
 from packaging.requirements import Requirement
 
 from pipzap.utils.pretty_string import remove_prefix
+from pipzap.utils.requirement_string import parse_requirement_string
 
 
 class UVToPoetryConverter:
@@ -115,7 +116,7 @@ class UVToPoetryConverter:
         Returns:
             Tuple of form (package_name, spec).
         """
-        req = Requirement(req_str)
+        req = parse_requirement_string(req_str)
         name = req.name
         dep: Dict[str, Union[str, List[str]]] = {}
 
