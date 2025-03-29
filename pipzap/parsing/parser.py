@@ -1,9 +1,12 @@
 from typing import Any, Dict, List, Optional, Set
 
+import tomlkit
+import tomlkit.items
 from loguru import logger
 
 from pipzap.core.dependencies import Dependency, DepKeyT, ProjectDependencies
 from pipzap.core.source_format import SourceFormat
+from pipzap.exceptions import ParsingError
 from pipzap.parsing.workspace import Workspace
 from pipzap.utils.io import read_toml
 from pipzap.utils.requirement_string import parse_requirement_string
@@ -25,11 +28,12 @@ class DependenciesParser:
             such as groups, extras, etc.
         """
         original_project: Optional[dict] = None
-        if workspace.backup.suffix == ".toml":
+        if workspace.backup and workspace.backup.suffix == ".toml":
             original_project = read_toml(workspace.backup)
 
         project = read_toml(workspace.base / "pyproject.toml")
         lock = read_toml(workspace.base / "uv.lock")
+        lock.setdefault("package", [])
 
         indexes = cls._parse_indexes(project)
         direct = cls._build_direct_dependencies(project, indexes)
@@ -66,7 +70,17 @@ class DependenciesParser:
             List of Dependency instances for all direct dependencies.
         """
         direct = []
-        sources = project.get("tool", {}).get("uv", {}).get("sources", {})
+        uv_tool = project.get("tool", {}).get("uv", {})
+        sources = uv_tool.get("sources", {})
+
+        if not isinstance(sources, (dict, tomlkit.items.Table, tomlkit.items.InlineTable)):
+            if len(sources) != 0:
+                raise ParsingError(
+                    "[tool.uv.sources] is expected to be a dict-like struct or an empty list, "
+                    f"got {type(sources)=}, {len(sources)=}"
+                )
+
+            uv_tool["sources"] = sources = {}
 
         # [project.dependencies]
         for req in project.get("project", {}).get("dependencies", []):
