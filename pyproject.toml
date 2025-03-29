@@ -1,6 +1,6 @@
 [project]
 name = "pipzap"
-version = "0.3.1"
+version = "0.3.2"
 description = "Dependency optimization and pruning made simple"
 authors = [{ name = "KiviCode", email = "kivicode.dev@gmail.com" }]
 
@@ -41,6 +41,8 @@ pipzap = "pipzap.__main__:main"
 dev = [ #
     "mypy>=1.4",
     "pre-commit>=2.21.0",
+    "pytest-cov>=5.0.0",
+    "pytest-xdist>=3.6.1",
     "ruff>=0.11.2",
 ]
 test = ["pytest>=7.4.4"]

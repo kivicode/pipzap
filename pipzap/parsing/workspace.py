@@ -160,8 +160,8 @@ class Workspace:
 
         if not self._no_isolation:
             # same path otherwise
-            logger.debug(f"Backing up (copying) '{self.source_path}' -> '{self._path}'")
-            shutil.copyfile(self.source_path, self._path)
+            logger.debug(f"Backing up (copying) the target file '{self.source_path}' -> '{self._path}'")
+            shutil.copyfile(self.source_path.resolve(), self._path)
 
         return self
 

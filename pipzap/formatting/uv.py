@@ -2,10 +2,10 @@ from copy import deepcopy
 from typing import List, Optional, Set
 
 import tomlkit
-from packaging.requirements import Requirement
 
 from pipzap.core.dependencies import DepKeyT
 from pipzap.formatting.base import DependenciesFormatter
+from pipzap.utils.requirement_string import parse_requirement_string
 
 
 class UVFormatter(DependenciesFormatter):
@@ -72,7 +72,7 @@ class UVFormatter(DependenciesFormatter):
                 filtered.append(req_str)
                 continue
 
-            name = Requirement(req_str).name.lower()
+            name = parse_requirement_string(req_str).name.lower()
             key = (name, group_set, extra_set)
 
             if key in keep_keys:

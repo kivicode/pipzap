@@ -26,6 +26,7 @@ class PoetryFormatter(DependenciesFormatter):
             assert self.dependencies.poetry_pyproject_source, (
                 "[internal assertion] Source project must be provided for poetry-to-poetry export."
             )
+            pyproject = self.dependencies.poetry_pyproject_source
 
         pyproject = self._filter_pyproject(pyproject)
         return tomlkit.dumps(pyproject)

@@ -5,6 +5,9 @@ on:
     types: [ opened, synchronize, reopened ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   pre-commit:
     runs-on: ubuntu-latest

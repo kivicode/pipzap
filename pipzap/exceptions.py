@@ -4,7 +4,7 @@ class DependencyError(Exception):
     ...
 
 
-class ParseError(DependencyError):
+class ParsingError(DependencyError):
     """Raised when parsing a dependency file fails."""
 
     ...
