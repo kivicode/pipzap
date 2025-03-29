@@ -1,7 +1,7 @@
 from enum import Enum
 from pathlib import Path
 
-from pipzap.exceptions import ParseError
+from pipzap.exceptions import ParsingError
 from pipzap.utils.io import read_toml
 
 
@@ -20,7 +20,7 @@ class SourceFormat(Enum):
             return cls.REQS
 
         if file_path.name != "pyproject.toml":
-            raise ParseError(f"Cannot determine format of {file_path}")
+            raise ParsingError(f"Cannot determine format of {file_path}")
 
         data = read_toml(file_path)
 
@@ -30,4 +30,4 @@ class SourceFormat(Enum):
         if "project" in data:
             return cls.UV
 
-        raise ParseError(f"Cannot determine format of {file_path}")
+        raise ParsingError(f"Cannot determine format of {file_path}")
