@@ -37,7 +37,7 @@ jobs:
         run: uv sync --frozen
 
       - name: Create badges directory
-        run: mkdir -p badges
+        run: mkdir -p .badges
 
       - name: Run tests
         run: uv run pytest --cov=pipzap --cov-report=xml -n auto
@@ -45,14 +45,14 @@ jobs:
       - name: Generate coverage badge
         uses: tj-actions/coverage-badge-py@v2
         with:
-          output: badges/coverage.svg
+          output: .badges/coverage.svg
       
       - name: Commit coverage badge
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "Update coverage badge"
           commit_options: "--no-verify"
-          file_pattern: "badges/coverage.svg"
+          file_pattern: ".badges/coverage.svg"
           branch: ${{ github.head_ref }}
           skip_dirty_check: false 
           skip_fetch: false 
