@@ -41,6 +41,9 @@ class PipZapCLI:
         if args.version:
             return
 
+        if not args.file:
+            self.parser.error("The following argument is required: file")
+
         if args.format is not None:
             args.format = SourceFormat(args.format)
 
@@ -86,7 +89,7 @@ class PipZapCLI:
                 raise err
 
     def _setup_parser(self):
-        self.parser.add_argument("file", type=Path, help="Path to the dependency file")
+        self.parser.add_argument("file", type=Path, nargs="?", help="Path to the dependency file")
         self.parser.add_argument("-v", "--verbose", action="store_true", help="Produce richer logs")
         self.parser.add_argument(
             "-o",
