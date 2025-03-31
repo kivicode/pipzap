@@ -130,7 +130,7 @@ class DependenciesParser:
         lock: Dict[str, Any], deps: List[Dependency]
     ) -> Tuple[Dict[DepKeyT, List[DepKeyT]], Dict[str, Set[str]]]:
         """Parse the resolved dependency graph from uv.lock and collect indirect markers."""
-        graph = {}
+        graph: Dict[DepKeyT, List[DepKeyT]] = {}
         direct_map = {dep.key: dep for dep in deps}
         indirect_markers_map: Dict[str, Set[str]] = {}
 
