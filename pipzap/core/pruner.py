@@ -37,10 +37,13 @@ class DependencyPruner:
 
     @classmethod
     def _find_redundant_deps(cls, dependencies: ProjectDependencies) -> Set[DepKeyT]:
-        """Identifies redundant direct dependencies."""
+        """Identifies redundant direct dependencies, preserving those with direct or indirect markers."""
         redundant = set()
 
         for dep in dependencies.direct:
+            if dep.marker is not None or dep.indirect_markers:
+                continue
+
             for other_dep in dependencies.direct:
                 if other_dep is dep:
                     continue

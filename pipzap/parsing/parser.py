@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import tomlkit
 import tomlkit.items
@@ -37,7 +37,8 @@ class DependenciesParser:
 
         indexes = cls._parse_indexes(project)
         direct = cls._build_direct_dependencies(project, indexes)
-        graph = cls._build_dependency_graph(lock, direct)
+        graph, indirect_markers_map = cls._build_dependency_graph(lock, direct)
+        cls._set_indirect_markers(direct, indirect_markers_map)
         cls._set_pinned_version(lock, direct)
 
         py_version = project["project"]["requires-python"]
@@ -125,32 +126,34 @@ class DependenciesParser:
         )
 
     @staticmethod
-    def _build_dependency_graph(lock: Dict[str, Any], deps: List[Dependency]) -> Dict[DepKeyT, List[DepKeyT]]:
-        """Parse the resolved dependency graph from uv.lock."""
+    def _build_dependency_graph(
+        lock: Dict[str, Any], deps: List[Dependency]
+    ) -> Tuple[Dict[DepKeyT, List[DepKeyT]], Dict[str, Set[str]]]:
+        """Parse the resolved dependency graph from uv.lock and collect indirect markers."""
         graph = {}
         direct_map = {dep.key: dep for dep in deps}
+        indirect_markers_map: Dict[str, Set[str]] = {}
 
         for package in lock.get("package", []):
             name = package["name"].lower()
+            package_deps = package.get("dependencies", [])
+
+            for dep_entry in package_deps:
+                dep_name = dep_entry["name"].lower()
+                marker = dep_entry.get("marker")
+
+                if not marker:
+                    continue
+
+                if dep_name not in indirect_markers_map:
+                    indirect_markers_map[dep_name] = set()
+                indirect_markers_map[dep_name].add(marker)
 
             for d_name, groups, extras in direct_map:
                 if d_name != name:
                     continue
-
                 key = (name, groups, extras)
-                package_deps: List[DepKeyT] = [
-                    (dep_name["name"].lower(), frozenset(), frozenset())
-                    for dep_name in package.get("dependencies", [])
-                ]
-
-                for i, (dep_name, _, _) in enumerate(package_deps):
-                    if (dep_name, frozenset(), frozenset()) not in direct_map:
-                        continue
-
-                    direct_dep = direct_map[(dep_name, frozenset(), frozenset())]
-                    package_deps[i] = (dep_name, frozenset(direct_dep.groups), frozenset(direct_dep.extras))
-
-                graph[key] = package_deps
+                graph[key] = [(dep["name"].lower(), frozenset(), frozenset()) for dep in package_deps]
 
         for package in lock.get("package", []):
             name = package["name"].lower()
@@ -163,7 +166,16 @@ class DependenciesParser:
                 for dep in package.get("dependencies", [])
             ]
 
-        return graph
+        return graph, indirect_markers_map
+
+    @staticmethod
+    def _set_indirect_markers(deps: List[Dependency], indirect_markers_map: Dict[str, Set[str]]) -> None:
+        """Set indirect markers on direct dependencies."""
+        for dep in deps:
+            if dep.name.lower() not in indirect_markers_map:
+                continue
+
+            dep.indirect_markers = frozenset(indirect_markers_map[dep.name.lower()])
 
     @staticmethod
     def _set_pinned_version(lock: Dict[str, Any], deps: List[Dependency]) -> None:

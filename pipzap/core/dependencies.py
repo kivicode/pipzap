@@ -21,7 +21,7 @@ class Dependency:
     """Names of extras the dependency belongs to."""
 
     marker: Optional[str] = None
-    """Marker of the dependency (e.g., "python_version >= '3.8'")."""
+    """Marker of the dependency from pyproject.toml (e.g., "python_version >= '3.8'")."""
 
     index: Optional[str] = None
     """Name of the custom index to use for the dependency."""
@@ -31,6 +31,9 @@ class Dependency:
 
     pinned_version: Optional[str] = None
     """Exact pinned version from uv.lock."""
+
+    indirect_markers: FrozenSet[str] = field(default_factory=frozenset)
+    """Markers from uv.lock where this dependency is required by others."""
 
     @property
     def key(self) -> DepKeyT:
