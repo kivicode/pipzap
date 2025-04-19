@@ -1,5 +1,5 @@
 from dataclasses import replace
-from typing import Dict, List, Set
+from typing import Dict, List, Optional, Set
 
 from loguru import logger
 
@@ -10,11 +10,16 @@ class DependencyPruner:
     """Prunes redundant (transitive) dependencies from parsed project dependencies tree."""
 
     @classmethod
-    def prune(cls, resolved_deps: ProjectDependencies) -> ProjectDependencies:
+    def prune(
+        cls,
+        resolved_deps: ProjectDependencies,
+        keep: Optional[List[str]] = None,
+    ) -> ProjectDependencies:
         """Identifies and removes the redundant/transitive dependencies.
 
         Args:
             resolved_deps: Parsed and resolved dependencies and the internal dependency tree to prune.
+            keep: Package names to not prune.
 
         Returns:
             A copy of the original project dependencies with the redundant deps removed.
@@ -25,7 +30,7 @@ class DependencyPruner:
             f"graph size: {len(resolved_deps.graph)}"
         )
 
-        redundant = cls._find_redundant_deps(resolved_deps)
+        redundant = cls._find_redundant_deps(resolved_deps, keep or [])
         pruned = cls._filter_redundant(resolved_deps.direct, redundant)
 
         logger.info(f"Redundant: {', '.join(name for name, *_ in redundant or [('<empty>', '')])}")
@@ -36,12 +41,13 @@ class DependencyPruner:
         return replace(resolved_deps, direct=pruned)
 
     @classmethod
-    def _find_redundant_deps(cls, dependencies: ProjectDependencies) -> Set[DepKeyT]:
+    def _find_redundant_deps(cls, dependencies: ProjectDependencies, keep: List[str]) -> Set[DepKeyT]:
         """Identifies redundant direct dependencies, preserving those with direct or indirect markers."""
         redundant = set()
+        keep = [name.lower() for name in keep]
 
         for dep in dependencies.direct:
-            if dep.marker is not None or dep.indirect_markers:
+            if dep.marker is not None or dep.indirect_markers or dep.name.lower() in keep:
                 continue
 
             for other_dep in dependencies.direct:

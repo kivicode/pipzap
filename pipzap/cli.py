@@ -67,7 +67,7 @@ class PipZapCLI:
 
                 source_format = ProjectConverter(args.python_version).convert_to_uv(workspace)
                 parsed = DependenciesParser.parse(workspace, source_format)
-                pruned = DependencyPruner.prune(parsed)
+                pruned = DependencyPruner.prune(parsed, args.keep)
 
                 result = KNOWN_FORMATTERS[args.format or source_format](workspace, pruned).format()
 
@@ -117,6 +117,14 @@ class PipZapCLI:
             type=str,
             default=None,
             help="Python version (required for requirements.txt)",
+        )
+        self.parser.add_argument(
+            "-k",
+            "--keep",
+            type=str,
+            nargs="+",
+            metavar="PACKAGE_NAME",
+            help="Not prune this package",
         )
         self.parser.add_argument(
             "-V",
