@@ -1,6 +1,6 @@
 [project]
 name = "pipzap"
-version = "0.3.5"
+version = "0.3.6"
 description = "Dependency optimization and pruning made simple"
 authors = [{ name = "KiviCode", email = "kivicode.dev@gmail.com" }]
 
