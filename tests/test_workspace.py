@@ -77,7 +77,7 @@ def test_concurrent_workspace_access(tmp_path):
     results = []
 
     def worker(id):
-        with Workspace(source, no_isolation=True, restore_backup=True) as ws:
+        with Workspace(source, no_isolation=False, restore_backup=True) as ws:
             ws.path.write_text(f"modified by {id}")
             results.append(ws.path.read_text())
 
