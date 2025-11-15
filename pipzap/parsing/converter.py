@@ -21,6 +21,11 @@ class ProjectConverter:
                         Adds a `~=` specifier if nothing else is provided.
         """
         if py_version and py_version[0].isdigit():
+            # Ensure we have at least major.minor.patch for ~= to work correctly
+            # ~=3.10 allows 3.11+, but ~=3.10.0 only allows 3.10.x
+            parts = py_version.split(".")
+            if len(parts) == 2:
+                py_version = f"{py_version}.0"
             py_version = f"~={py_version}"
 
         self.py_version = py_version
@@ -72,9 +77,8 @@ class ProjectConverter:
             )
 
         workspace.run(
-            ["uvx", "migrate-to-uv", "--package-manager", "pip"],
+            ["uvx", "migrate-to-uv", "--package-manager", "pip", "--skip-lock"],
             "conversion",
-            log_filter=lambda line: "No `requires-python` value found in the workspace." not in line,
         )
 
         path = workspace.base / "pyproject.toml"
@@ -137,7 +141,7 @@ class ProjectConverter:
 
         path = workspace.base / "pyproject.toml"
         pyproject = read_toml(path)
-        pyproject["project"]["requires-python"] = self.py_version or fallback
+        pyproject["project"]["requires-python"] = version
         write_toml(pyproject, path)
 
         return True
