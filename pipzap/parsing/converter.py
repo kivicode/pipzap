@@ -23,7 +23,7 @@ class ProjectConverter:
         if py_version and py_version[0].isdigit():
             # Ensure we have at least major.minor.patch for ~= to work correctly
             # ~=3.10 allows 3.11+, but ~=3.10.0 only allows 3.10.x
-            parts = py_version.split('.')
+            parts = py_version.split(".")
             if len(parts) == 2:
                 py_version = f"{py_version}.0"
             py_version = f"~={py_version}"
