@@ -5,11 +5,6 @@
         "**/.git/subtree-cache/**": true,
     },
     "files.autoSave": "onFocusChange",
-    "files.associations": {
-        "*.nu": "json",
-        "*.spec": "python",
-        "*.pi": "python"
-    },
     "editor.formatOnSave": true,
     "editor.formatOnSaveMode": "file",
     "[python]": {

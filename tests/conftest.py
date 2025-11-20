@@ -64,6 +64,8 @@ def cli_args():
             "format": None,
             "python_version": "3.8",
             "version": kwargs.get("version", False),
+            "discover": kwargs.get("discover", False),
+            "keep": kwargs.get("keep", None),
         }
         return Namespace(**defaults)
 

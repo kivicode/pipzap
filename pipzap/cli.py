@@ -1,13 +1,14 @@
 import argparse
 import sys
 from pathlib import Path
-from typing import Dict, Optional, Type
+from typing import Dict, Optional, Set, Type
 
 from loguru import logger
 
 from pipzap import __uv_version__ as uv_version
 from pipzap import __version__ as zap_version
 from pipzap.core import DependencyPruner, SourceFormat
+from pipzap.discovery import discover_dependencies
 from pipzap.formatting import PoetryFormatter, RequirementsTXTFormatter, UVFormatter
 from pipzap.formatting.base import DependenciesFormatter
 from pipzap.parsing import DependenciesParser, ProjectConverter, Workspace
@@ -44,15 +45,40 @@ class PipZapCLI:
         if not args.file:
             self.parser.error("The following argument is required: file")
 
+        scan_path: Optional[Path] = None
+        if args.discover:
+            scan_path = args.file
+            if scan_path and scan_path.is_dir():
+                potential_files = [
+                    scan_path / "requirements.txt",
+                    scan_path / "pyproject.toml",
+                ]
+                existing_file = next((f for f in potential_files if f.exists()), None)
+                args.file = existing_file
+            else:
+                scan_path = args.file.parent
+
         if args.format is not None:
             args.format = SourceFormat(args.format)
 
         try:
             if args.output and args.output.is_file() and not args.override:
                 raise ValueError(
-                    f"Output file {args.output} already exists. "  #
-                    "Specify --override to allow overriding"
+                    f"Output file {args.output} already exists. Specify --override to allow overriding",
                 )
+
+            discovered_packages: Optional[Set[str]] = None
+            if args.discover:
+                if not scan_path:
+                    raise ValueError("Discovery mode requires a valid scan path")
+
+                discovered_packages = discover_dependencies(scan_path)
+
+                if args.file is None:
+                    temp_reqs_path = scan_path / "requirements-discovered.txt"
+                    temp_reqs_path.write_text("\n".join(sorted(discovered_packages)))
+                    args.file = temp_reqs_path
+                    logger.info("No source file found, using discovered packages only")
 
             logger.success(f"Starting processing {args.file}")
 
@@ -69,15 +95,33 @@ class PipZapCLI:
                 parsed = DependenciesParser.parse(workspace, source_format)
                 pruned = DependencyPruner.prune(parsed, args.keep)
 
+                if discovered_packages:
+                    original_count = len(pruned.direct)
+                    pruned.direct = [dep for dep in pruned.direct if dep.name.lower() in discovered_packages]
+                    filtered_count = original_count - len(pruned.direct)
+
+                    if filtered_count > 0:
+                        if args.verbose:
+                            excluded = original_count - len(pruned.direct)
+                            logger.warning(f"Excluded {excluded} packages not found in source code")
+                        else:
+                            logger.info(f"Excluded {filtered_count} unused packages")
+
                 result = KNOWN_FORMATTERS[args.format or source_format](workspace, pruned).format()
 
             if not args.output:
-                logger.success(f"Result:")
+                logger.success("Result:")
                 print("\n" + result)
                 return
 
             args.output.write_text(result)
             logger.success(f"Results written to {args.output}")
+
+            if args.discover and scan_path:
+                temp_reqs_path = scan_path / "requirements-discovered.txt"
+                if temp_reqs_path.exists():
+                    temp_reqs_path.unlink()
+                    logger.debug("Cleaned up temporary requirements file")
 
         except Exception as err:
             if args.verbose:
@@ -131,4 +175,10 @@ class PipZapCLI:
             "--version",
             action="store_true",
             help="Show the version of pipzap",
+        )
+        self.parser.add_argument(
+            "-d",
+            "--discover",
+            action="store_true",
+            help="Discover dependencies by scanning Python source files with pipreqs",
         )
