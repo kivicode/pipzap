@@ -1,5 +1,6 @@
+import json
 from pathlib import Path
-from typing import Set
+from typing import List, Set
 
 from loguru import logger
 from pipreqs import pipreqs
@@ -29,7 +30,7 @@ def discover_dependencies(scan_path: Path) -> Set[str]:
             extra_ignore_dirs=None,
             follow_links=True,
         )
-        imports = pipreqs.get_pkg_names(imports)
+        imports = _get_pkg_names(imports)
     except Exception as e:
         logger.error(f"Failed to scan imports: {e}")
         return set()
@@ -52,3 +53,23 @@ def discover_dependencies(scan_path: Path) -> Set[str]:
     logger.debug(f"Discovered packages: {sorted(discovered)}")
 
     return discovered
+
+
+def _get_pkg_names(pkgs: List[str]) -> List[str]:
+    """Get PyPI package names from a list of imports.
+
+    Args:
+        pkgs: List of import names.
+
+    Returns:
+        List[str]: The corresponding PyPI package names.
+
+    """
+    result: Set[str] = set()
+    mapper_path = Path(__file__).parent / "pkg_mapping.json"
+    data = {entry["import"]: entry["package"] for entry in json.loads(mapper_path.read_text("utf-8"))}
+
+    for pkg in pkgs:
+        result.add(data.get(pkg, pkg))
+
+    return sorted(result, key=lambda s: s.lower())
