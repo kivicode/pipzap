@@ -29,6 +29,7 @@ def discover_dependencies(scan_path: Path) -> Set[str]:
             extra_ignore_dirs=None,
             follow_links=True,
         )
+        imports = pipreqs.get_pkg_names(imports)
     except Exception as e:
         logger.error(f"Failed to scan imports: {e}")
         return set()
