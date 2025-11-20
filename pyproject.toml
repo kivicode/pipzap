@@ -30,6 +30,7 @@ dependencies = [ #
     "tomlkit>=0.13.2",
     "packaging>=24.2",
     "typing-extensions>=4.12.2",
+    "pipreqs>=0.4.13",
 ]
 
 [project.urls]
@@ -55,6 +56,10 @@ default-groups = ["dev", "test"]
 [tool.mypy]
 ignore_missing_imports = false
 check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["pipreqs"]
+ignore_missing_imports = true
 
 [tool.ruff]
 line-length = 110
