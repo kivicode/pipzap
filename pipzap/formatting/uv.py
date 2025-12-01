@@ -61,9 +61,10 @@ class UVFormatter(DependenciesFormatter):
             extra: The extra context, if applicable.
 
         Returns:
-            Filtered list of requirement strings.
+            Filtered list of requirement strings (deduplicated).
         """
         filtered = []
+        seen_keys: Set[DepKeyT] = set()
         group_set = frozenset([group]) if group else frozenset()
         extra_set = frozenset([extra]) if extra else frozenset()
 
@@ -75,7 +76,11 @@ class UVFormatter(DependenciesFormatter):
             name = parse_requirement_string(req_str).name.lower()
             key = (name, group_set, extra_set)
 
+            if key in seen_keys:
+                continue
+
             if key in keep_keys:
+                seen_keys.add(key)
                 filtered.append(req_str)
 
         return tomlkit.array(filtered).multiline(True)
