@@ -11,6 +11,7 @@ class SourceFormat(Enum):
     REQS = "reqs"
     POETRY = "poetry"
     UV = "uv"
+    CONDA = "conda"
 
     @classmethod
     def detect_format(cls, file_path: Path) -> "SourceFormat":
@@ -18,6 +19,9 @@ class SourceFormat(Enum):
 
         if "requirements" in file_path.name and ".txt" in file_path.suffixes:
             return cls.REQS
+
+        if file_path.suffix in (".yml", ".yaml"):
+            return cls.CONDA
 
         if file_path.name != "pyproject.toml":
             raise ParsingError(f"Cannot determine format of {file_path}")

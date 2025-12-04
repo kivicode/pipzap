@@ -66,6 +66,7 @@ def cli_args():
             "version": kwargs.get("version", False),
             "discover": kwargs.get("discover", False),
             "keep": kwargs.get("keep", None),
+            "preserve_all": kwargs.get("preserve_all", False),
         }
         return Namespace(**defaults)
 

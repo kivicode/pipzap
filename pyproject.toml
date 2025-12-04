@@ -1,6 +1,6 @@
 [project]
 name = "pipzap"
-version = "0.4.1"
+version = "0.5.0"
 description = "Dependency optimization and pruning made simple"
 authors = [{ name = "KiviCode", email = "kivicode.dev@gmail.com" }]
 
@@ -31,6 +31,7 @@ dependencies = [ #
     "packaging>=24.2",
     "typing-extensions>=4.12.2",
     "pipreqs>=0.4.13",
+    "ruamel-yaml>=0.18.16",
 ]
 
 [project.urls]

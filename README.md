@@ -32,10 +32,12 @@ Moreover, even in well-maintained codebases, accidental over-specification creep
 ## Features
 
 - **Dependency Pruning**: Eliminates redundant dependencies satisfied transitively.
-- **Format Auto-Detection**: Automatically recognizes `requirements.txt`, `uv`, and `Poetry` files.
-- **Flexible Output**: Outputs in `requirements`, `poetry`, or `uv` formats.
+- **Format Auto-Detection**: Automatically recognizes `requirements.txt`, `uv`, `Poetry`, and `conda` environment files.
+- **Flexible Output**: Outputs in `requirements`, `poetry`, `uv`, or `conda` formats.
 - **Python Version Handling**: Extracts from `pyproject.toml` or accepts via CLI for `requirements.txt`.
 - **Isolated Resolution**: Resolves dependencies in a temporary, isolated environment to avoid impacting your project.
+- **Dependency Discovery**: Scan source files with `--discover` to find actually used packages.
+- **Preserve All Mode**: Use `--preserve-all` to ensure no transitive dependencies are lost after pruning.
 - **Verbose Logging**: Optional rich logging for detailed insights.
 
 ## Installation
@@ -59,12 +61,15 @@ pipzap pyproject.toml -o pruned.toml -f poetry -v
 - Use `-p/--python-version` to specify (recommended; defaults to the current environment for `requirements.txt`).
 - Python version is auto-detected from `pyproject.toml` when present.
 - Output format defaults to the input format unless specified with `-f/--format` (e.g., `-f requirements`).
+- Use `-d/--discover` to scan Python source files and keep only packages that are actually imported.
+- Use `--preserve-all` to re-verify the pruned output and add back any dependencies that would be missing.
 
 ## Supported Formats
 
 - **`requirements.txt`**: Pip-style with `--extra-index-url` support.
 - **UV `pyproject.toml`**: Parses `[project.dependencies]` and `[project.requires-python]`.
 - **Poetry `pyproject.toml`**: Handles `[project.dependencies]` (modern) and `[tool.poetry.dependencies]` (legacy).
+- **Conda `environment.yml`**: Extracts and processes pip dependencies, preserving conda-specific sections.
 
 ## How It Works
 
