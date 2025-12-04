@@ -9,7 +9,7 @@ from pipzap import __uv_version__ as uv_version
 from pipzap import __version__ as zap_version
 from pipzap.core import DependencyPruner, SourceFormat
 from pipzap.discovery import discover_dependencies
-from pipzap.formatting import PoetryFormatter, RequirementsTXTFormatter, UVFormatter
+from pipzap.formatting import CondaFormatter, PoetryFormatter, RequirementsTXTFormatter, UVFormatter
 from pipzap.formatting.base import DependenciesFormatter
 from pipzap.parsing import DependenciesParser, ProjectConverter, Workspace
 from pipzap.parsing.workspace import BackupPath
@@ -18,6 +18,7 @@ KNOWN_FORMATTERS: Dict[SourceFormat, Type[DependenciesFormatter]] = {
     SourceFormat.POETRY: PoetryFormatter,
     SourceFormat.REQS: RequirementsTXTFormatter,
     SourceFormat.UV: UVFormatter,
+    SourceFormat.CONDA: CondaFormatter,
 }
 
 
